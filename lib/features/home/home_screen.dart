@@ -14,6 +14,7 @@ import '../guided_workflow/data/workflow_registry.dart';
 import '../guided_workflow/domain/workflow_controller.dart';
 import '../guided_workflow/presentation/workflow_screen.dart';
 import '../settings/settings_screen.dart';
+import '../voice_session/domain/voice_session_service.dart';
 import '../voice_session/presentation/voice_actions.dart';
 import '../voice_session/presentation/voice_orb.dart';
 import '../voice_session/presentation/voice_status_text.dart';
@@ -234,7 +235,11 @@ class _VoiceCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  VoiceOrb(status: status, size: 64),
+                  VoiceOrb(
+                    // Past calls are explained on the voice screen; Home stays calm.
+                    status: live ? status : const VoiceStatus(VoicePhase.idle),
+                    size: 64,
+                  ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Column(

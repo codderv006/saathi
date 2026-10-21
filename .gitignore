@@ -52,3 +52,7 @@ poc_config.json
 # Native crash / kotlin logs
 android/.kotlin/
 android/hs_err_pid*.log
+
+# Screen recordings / extracted frames may contain personal data
+recordings/
+frames/
