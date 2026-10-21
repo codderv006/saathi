@@ -383,4 +383,15 @@ class AppLocalizationsMr extends AppLocalizations {
   @override
   String get secretCodeNote =>
       'हा कोड कोणालाही सांगू नका. साथी तो कधीही विचारणार नाही.';
+
+  @override
+  String get resumeTitle => 'जिथे थांबलात तिथून पुढे सुरू करायचे?';
+
+  @override
+  String get resumeNew => 'नवीन सुरू करा';
+
+  @override
+  String inProgressApp(String app) {
+    return 'सुरू आहे: $app';
+  }
 }

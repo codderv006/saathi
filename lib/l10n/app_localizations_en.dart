@@ -379,4 +379,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get secretCodeNote =>
       'Never share this code with anyone. Saathi will never ask for it.';
+
+  @override
+  String get resumeTitle => 'Continue where you left off?';
+
+  @override
+  String get resumeNew => 'Start a new one';
+
+  @override
+  String inProgressApp(String app) {
+    return 'In progress: $app';
+  }
 }

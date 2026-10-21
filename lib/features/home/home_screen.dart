@@ -29,11 +29,21 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   bool _starting = false;
 
-  Future<void> _openGuide({bool fresh = false}) async {
+  Future<void> _openGuide() async {
     final services = AppScope.of(context);
     final guide = services.guide;
-    final open = guide.session?.isOpen ?? false;
-    if (fresh || !open) {
+    var fresh = !(guide.session?.isOpen ?? false);
+    if (!fresh) {
+      // Never resume silently: let the user choose.
+      final resume = await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => const _ResumeChoiceSheet(),
+      );
+      if (resume == null || !mounted) return;
+      fresh = !resume;
+    }
+    if (fresh) {
       final app = await showModalBottomSheet<RideApp>(
         context: context,
         isScrollControlled: true,
@@ -161,11 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       services.guide,
                       services.settings,
                     ]),
-                    builder: (context, _) => _TaskTile(
-                      busy: _starting,
-                      onOpen: () => _openGuide(),
-                      onStartOver: () => _openGuide(fresh: true),
-                    ),
+                    builder: (context, _) =>
+                        _TaskTile(busy: _starting, onOpen: _openGuide),
                   ),
                 ],
               ),
@@ -282,15 +289,10 @@ class _VoiceCard extends StatelessWidget {
 }
 
 class _TaskTile extends StatelessWidget {
-  const _TaskTile({
-    required this.busy,
-    required this.onOpen,
-    required this.onStartOver,
-  });
+  const _TaskTile({required this.busy, required this.onOpen});
 
   final bool busy;
   final VoidCallback onOpen;
-  final VoidCallback onStartOver;
 
   @override
   Widget build(BuildContext context) {
@@ -338,18 +340,14 @@ class _TaskTile extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            inProgress && app != null
-                                ? l10n.continueWithApp(app.displayName)
-                                : l10n.taskBookCab,
+                            l10n.taskBookCab,
                             style: theme.textTheme.titleMedium,
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            inProgress
-                                ? l10n.stepOf(
-                                    stepIndex + 1,
-                                    definition.steps.length,
-                                  )
+                            inProgress && app != null
+                                ? '${l10n.inProgressApp(app.displayName)} · '
+                                      '${l10n.stepOf(stepIndex + 1, definition.steps.length)}'
                                 : l10n.taskBookCabDetail,
                             style: theme.textTheme.bodyMedium,
                           ),
@@ -367,23 +365,6 @@ class _TaskTile extends StatelessWidget {
               ),
             ),
           ),
-          if (inProgress) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xs,
-                vertical: AppSpacing.xxs,
-              ),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: busy ? null : onStartOver,
-                  icon: const Icon(Icons.restart_alt_rounded, size: 20),
-                  label: Text(l10n.startOver),
-                ),
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -528,6 +509,77 @@ class _SetupChoiceSheet extends StatelessWidget {
               Icons.download_rounded,
               l10n.setupNo,
               l10n.setupNoDetail,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown when a guide is already in progress: continue it, or start a new one.
+class _ResumeChoiceSheet extends StatelessWidget {
+  const _ResumeChoiceSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final guide = services.guide;
+    final session = guide.session!;
+    final definition = guide.definition!;
+    final step = guide.currentStep!;
+    final language = services.settings.language;
+    final app = RideApp.fromWorkflowId(session.workflowId);
+
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.pagePadding,
+          0,
+          AppSpacing.pagePadding,
+          AppSpacing.md,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.resumeTitle, style: theme.textTheme.headlineMedium),
+            const SizedBox(height: AppSpacing.md),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppSpacing.chipRadius),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${app?.displayName ?? ''} · '
+                    '${l10n.stepOf(definition.indexOf(step.id) + 1, definition.steps.length)}',
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    step.title.of(language),
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            PrimaryButton(
+              label: l10n.continueGuide,
+              icon: Icons.play_arrow_rounded,
+              onPressed: () => Navigator.pop(context, true),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SecondaryButton(
+              label: l10n.resumeNew,
+              icon: Icons.add_rounded,
+              onPressed: () => Navigator.pop(context, false),
             ),
           ],
         ),

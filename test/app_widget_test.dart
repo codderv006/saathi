@@ -205,11 +205,47 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(app.store.stored!.status, SessionStatus.paused);
-    expect(find.text('Continue in Ola'), findsOneWidget);
-    expect(find.text('Step 2 of 8'), findsOneWidget);
-    await tapText(tester, 'Continue in Ola');
+    expect(find.text('In progress: Ola · Step 2 of 8'), findsOneWidget);
+
+    // Never resumes silently: the user is asked.
+    await tapText(tester, 'Book a ride');
+    expect(find.text('Continue where you left off?'), findsOneWidget);
+    await tapText(tester, 'Continue');
     expect(find.text('Find pickup and destination'), findsOneWidget);
     expect(app.store.stored!.status, SessionStatus.active);
+  });
+
+  testWidgets('choosing "Start a new one" begins a fresh guide', (
+    tester,
+  ) async {
+    final app = await TestApp.create();
+    await pumpApp(tester, app);
+    await openRideGuide(tester, RideApp.ola);
+    await tapText(tester, "I've done this");
+    final oldId = app.store.stored!.id;
+    await tester.tap(find.byTooltip('Exit guide'));
+    await tester.pumpAndSettle();
+
+    await tapText(tester, 'Book a ride');
+    await tapText(tester, 'Start a new one');
+    await tapText(tester, 'Uber');
+    await tapText(tester, "Yes, I'm already signed in");
+    expect(find.text('Open Uber'), findsOneWidget);
+    expect(find.text('Step 1 of 8'), findsOneWidget);
+    expect(app.store.stored!.id, isNot(oldId));
+  });
+
+  testWidgets('a call from Home does not assume a paused guide', (
+    tester,
+  ) async {
+    final app = await TestApp.create();
+    await pumpApp(tester, app);
+    await openRideGuide(tester, RideApp.ola);
+    await tester.tap(find.byTooltip('Exit guide'));
+    await tester.pumpAndSettle();
+    await tapLive(tester, 'Start talking');
+    expect(app.voice.starts, 1);
+    expect(app.voice.lastContext, isEmpty);
   });
 
   testWidgets('progress survives an app restart', (tester) async {
@@ -222,8 +258,7 @@ void main() {
     final second = await TestApp.create(store: first.store);
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, second);
-    expect(find.text('Continue in Ola'), findsOneWidget);
-    expect(find.text('Step 3 of 8'), findsOneWidget);
+    expect(find.text('In progress: Ola · Step 3 of 8'), findsOneWidget);
   });
 
   group('voice', () {

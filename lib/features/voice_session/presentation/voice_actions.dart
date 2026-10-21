@@ -4,6 +4,7 @@ import '../../../app/app_scope.dart';
 import '../../../app/theme/app_spacing.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../l10n/app_localizations.dart';
+import '../../guided_workflow/domain/workflow.dart';
 import 'voice_session_screen.dart';
 
 /// Starts a voice call with the current guide step as context, explaining the
@@ -37,8 +38,13 @@ Future<void> startVoiceSession(
   final session = services.guide.session;
   final step = services.guide.currentStep;
   final def = services.guide.definition;
+  // Only attach the guide when the call is about it: started inside the guide, or
+  // the guide is actively open. A paused guide is not assumed.
   final guideOpen =
-      session != null && session.isOpen && step != null && def != null;
+      session != null &&
+      step != null &&
+      def != null &&
+      (fromGuide ? session.isOpen : session.status == SessionStatus.active);
   if (openScreen) _openScreen(context, fromGuide);
   await voice.start(
     language: language,

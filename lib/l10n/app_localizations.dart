@@ -775,6 +775,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Never share this code with anyone. Saathi will never ask for it.'**
   String get secretCodeNote;
+
+  /// No description provided for @resumeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue where you left off?'**
+  String get resumeTitle;
+
+  /// No description provided for @resumeNew.
+  ///
+  /// In en, this message translates to:
+  /// **'Start a new one'**
+  String get resumeNew;
+
+  /// No description provided for @inProgressApp.
+  ///
+  /// In en, this message translates to:
+  /// **'In progress: {app}'**
+  String inProgressApp(String app);
 }
 
 class _AppLocalizationsDelegate

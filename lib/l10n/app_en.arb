@@ -150,5 +150,15 @@
   "setupYesDetail": "Start from booking a ride",
   "setupNo": "No, help me install it",
   "setupNoDetail": "Start from installing the app and signing up",
-  "secretCodeNote": "Never share this code with anyone. Saathi will never ask for it."
+  "secretCodeNote": "Never share this code with anyone. Saathi will never ask for it.",
+  "resumeTitle": "Continue where you left off?",
+  "resumeNew": "Start a new one",
+  "inProgressApp": "In progress: {app}",
+  "@inProgressApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  }
 }
