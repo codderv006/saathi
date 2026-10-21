@@ -1,0 +1,4 @@
+{
+  "SESSION_URL": "http://localhost:8787/session",
+  "DEV_SESSION_TOKEN": "same-value-as-server/.env"
+}

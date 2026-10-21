@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+</head>
+<body style="font:11px monospace;margin:4px;color:#555">bolna web-call v3.0.1 (WebView)
+<!-- Official @bolna/web-call v3.0.1 dist, vendored from
+     https://cdn.jsdelivr.net/gh/bolna-ai/web-call@v3.0.1/dist/bolna-web-call.min.js
+     and inlined by WebViewBolnaAdapter. Exposes window.BolnaWebCall. -->
+<script>/*__BOLNA_SDK__*/</script>
+<script>
+(function () {
+  // Everything goes to Dart through one channel as JSON {type, ...}.
+  function post(type, data) {
+    var msg = Object.assign({ type: type }, data || {});
+    SaathiBridge.postMessage(JSON.stringify(msg));
+  }
+
+  var call = null;
+  var levelSum = 0, levelCount = 0, levelMax = 0;
+
+  window.addEventListener('error', function (e) { post('js-error', { message: String(e.message) }); });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    post('js-error', { message: String((r && r.message) || r) });
+  });
+  document.addEventListener('visibilitychange', function () {
+    post('visibility', { state: document.visibilityState });
+  });
+
+  // session: the JSON minted by our backend. Single-use, so one BolnaWebCall per call.
+  window.saathiStart = function (session) {
+    if (call && call.getState() !== 'ended' && call.getState() !== 'idle') {
+      post('error', { code: 'already_active', message: 'call in progress' });
+      return;
+    }
+    call = new BolnaWebCall({ session: session });
+    call.on('state-change', function (s) { post('state', { state: s }); });
+    call.on('media-permission', function () { post('media-permission'); });
+    call.on('call-start', function () { post('call-start', { runId: call.getRunId() }); });
+    call.on('call-end', function (e) { post('call-end', { reason: e.reason }); });
+    call.on('error', function (e) {
+      post('error', { code: e.code, message: e.message, scope: e.scope || null });
+    });
+    call.on('volume-level', function (v) {
+      levelSum += v; levelCount++; if (v > levelMax) levelMax = v;
+    });
+    // Failures are already reported through the 'error' event.
+    call.start().catch(function () {});
+  };
+
+  window.saathiStop = function () { if (call) return call.stop(); };
+  window.saathiMute = function (muted) { if (call) call.setMuted(muted); };
+
+  // Heartbeat: shows whether JS timers keep running in the background (gaps between
+  // beats), whether agent audio is still arriving (level samples / avg level), and the
+  // page's own visibility state.
+  setInterval(function () {
+    post('heartbeat', {
+      state: call ? call.getState() : 'none',
+      visibility: document.visibilityState,
+      samples: levelCount,
+      avgLevel: levelCount ? levelSum / levelCount : 0,
+      maxLevel: levelMax,
+      t: Date.now()
+    });
+    levelSum = 0; levelCount = 0; levelMax = 0;
+  }, 2000);
+
+  post('ready', {
+    secureContext: window.isSecureContext,
+    hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+    hasRTCPeerConnection: typeof RTCPeerConnection === 'function',
+    sdkLoaded: typeof BolnaWebCall === 'function',
+    userAgent: navigator.userAgent
+  });
+})();
+</script>
+</body>
+</html>
