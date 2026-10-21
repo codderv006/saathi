@@ -12,12 +12,13 @@ import 'core/services/settings_controller.dart';
 import 'features/guided_workflow/data/firestore_workflow_store.dart';
 import 'features/guided_workflow/data/local_workflow_store.dart';
 import 'features/guided_workflow/data/synced_workflow_store.dart';
-import 'features/guided_workflow/domain/workflow_store.dart';
-import 'features/guided_workflow/domain/workflow_controller.dart';
 import 'features/guided_workflow/data/workflow_registry.dart';
+import 'features/guided_workflow/domain/workflow_controller.dart';
 import 'features/voice_session/data/bolna_webview_voice_service.dart';
 import 'features/voice_session/data/session_client.dart';
 
+/// Startup only waits for on-phone data. Firebase signs in in the background and
+/// attaches cloud sync when ready, so the first screen (and the call) start fast.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final android = AndroidBridge();
@@ -37,15 +38,7 @@ Future<void> main() async {
         : null,
   );
 
-  final uid = await _signInAnonymously();
-  final WorkflowStore store = uid == null
-      ? LocalWorkflowStore()
-      : SyncedWorkflowStore(
-          local: LocalWorkflowStore(),
-          remote: FirestoreWorkflowStore(FirebaseFirestore.instance, uid),
-        );
-  log('init', 'progress store: ${store.name}');
-
+  final store = SyncedWorkflowStore(local: LocalWorkflowStore());
   final guide = WorkflowController(
     store: store,
     findDefinition: WorkflowRegistry.find,
@@ -53,23 +46,26 @@ Future<void> main() async {
   final restore = await guide.restore();
   log('init', 'restore → ${restore.name} ${guide.session ?? ''}');
 
-  runApp(
-    SaathiApp(
-      services: AppServices(
-        settings: settings,
-        voice: voice,
-        guide: guide,
-        android: android,
-        startupRestore: restore,
-        userId: uid,
-      ),
-    ),
+  final services = AppServices(
+    settings: settings,
+    voice: voice,
+    guide: guide,
+    android: android,
+    startupRestore: restore,
   );
+  runApp(SaathiApp(services: services));
+
+  final uid = await _signInAnonymously();
+  if (uid != null) {
+    store.attachRemote(FirestoreWorkflowStore(FirebaseFirestore.instance, uid));
+    services.userId = uid;
+    log('init', 'cloud sync attached for uid=$uid');
+  }
 }
 
 /// Anonymous Firebase identity (Spark plan, free). Returns null if Firebase isn't
-/// configured or can't start (e.g. offline on first launch): the app then keeps
-/// progress on the phone only for this run.
+/// configured or can't start (e.g. offline on first launch): progress then stays
+/// on the phone only for this run.
 Future<String?> _signInAnonymously() async {
   if (!PocConfig.firebaseConfigured) {
     log('init', 'Firebase not configured: progress stays on this phone');
@@ -89,12 +85,8 @@ Future<String?> _signInAnonymously() async {
     final user =
         existing ??
         (await auth.signInAnonymously().timeout(
-          const Duration(seconds: 6),
+          const Duration(seconds: 8),
         )).user!;
-    log(
-      'init',
-      'Firebase uid=${user.uid} (${existing != null ? 'restored' : 'new anonymous'})',
-    );
     return user.uid;
   } catch (e) {
     log('init', 'Firebase unavailable, using phone-only progress: $e');

@@ -62,3 +62,6 @@ android/app/google-services.json
 firebase/node_modules/
 firebase/*.log
 frames_coarse/
+
+# Bolna agent config backups (contain the full prompt)
+server/agent_backups/

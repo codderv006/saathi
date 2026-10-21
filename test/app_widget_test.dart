@@ -1,50 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:saathi_poc/features/guided_workflow/data/ride_workflow.dart';
+import 'package:saathi_poc/features/call/guide_tool_handler.dart';
 import 'package:saathi_poc/features/guided_workflow/domain/workflow.dart';
 import 'package:saathi_poc/features/voice_session/domain/voice_session_service.dart';
 
 import 'support/fakes.dart';
 
-/// Typical Android phone: 360 x 780 logical pixels.
-void usePhoneScreen(WidgetTester tester) {
+/// Typical Android phone, animations off (the voice orb animates forever otherwise).
+Future<void> pumpApp(WidgetTester tester, TestApp app) async {
   tester.view.physicalSize = const Size(1080, 2340);
   tester.view.devicePixelRatio = 3;
+  tester.platformDispatcher.accessibilityFeaturesTestValue =
+      const FakeAccessibilityFeatures(disableAnimations: true);
   addTearDown(tester.view.reset);
-}
-
-Future<void> pumpApp(WidgetTester tester, TestApp app) async {
-  usePhoneScreen(tester);
+  addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
   await tester.pumpWidget(app.widget);
   await tester.pumpAndSettle();
 }
 
-Future<void> openRideGuide(
-  WidgetTester tester,
-  RideApp rideApp, {
-  bool fromInstall = false,
-}) async {
-  await tapText(tester, 'Book a ride');
-  await tapText(tester, rideApp.displayName);
-  await tapText(
-    tester,
-    fromInstall ? 'No, help me install it' : "Yes, I'm already signed in",
-  );
-}
-
-/// For screens with continuous animation (live voice orb): fixed pumps, no settle.
-Future<void> tapLive(WidgetTester tester, String text) async {
-  await tester.ensureVisible(find.text(text).last);
-  await tester.pump();
-  await tester.tap(find.text(text).last);
-  for (var i = 0; i < 5; i++) {
-    await tester.pump(const Duration(milliseconds: 200));
-  }
-}
-
 Future<void> tapText(WidgetTester tester, String text) async {
   if (find.text(text).evaluate().isEmpty) {
-    // Lazily-built lists only create what is near the viewport.
     await tester.scrollUntilVisible(
       find.text(text),
       200,
@@ -57,275 +32,226 @@ Future<void> tapText(WidgetTester tester, String text) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> startGuide(
+  WidgetTester tester,
+  String app, {
+  bool newUser = false,
+}) async {
+  await tapText(tester, app);
+  await tapText(tester, newUser ? "No, I'm new" : 'Yes');
+}
+
+Future<void> done(WidgetTester tester, [int times = 1]) async {
+  for (var i = 0; i < times; i++) {
+    await tapText(tester, 'Done');
+  }
+}
+
 void main() {
-  testWidgets('onboarding: language switch updates UI, then home', (
-    tester,
-  ) async {
-    final app = await TestApp.create(onboarded: false);
-    await pumpApp(tester, app);
-    expect(find.text('Your companion for everyday apps.'), findsOneWidget);
-
-    await tapText(tester, 'मराठी');
-    expect(find.text('रोजच्या ॲप्ससाठी तुमचा सोबती.'), findsOneWidget);
-    expect(app.services.settings.language, 'mr');
-
-    await tapText(tester, 'सुरू करा');
-    expect(find.text('तुम्हाला कशासाठी मदत हवी आहे?'), findsOneWidget);
-    expect(app.android.settingsOpened, 0, reason: 'no permission prompts');
-  });
-
-  testWidgets('home shows the voice card first and only the ride guide', (
-    tester,
-  ) async {
+  testWidgets('opening the app starts the call straight away', (tester) async {
     final app = await TestApp.create();
     await pumpApp(tester, app);
-    expect(find.text('What would you like help with?'), findsOneWidget);
-    expect(find.text('Talk to Saathi'), findsOneWidget);
-    expect(find.text('Start talking'), findsOneWidget);
+    expect(app.voice.starts, 1);
+    expect(app.voice.lastContext!.keys, ['saathi_device']);
+    expect(find.text('Listening'), findsOneWidget);
+    expect(find.byTooltip('End call'), findsOneWidget);
     expect(find.text('Book a ride'), findsOneWidget);
-    expect(find.textContaining('WhatsApp'), findsNothing);
-    expect(find.textContaining('Google Pay'), findsNothing);
   });
 
-  testWidgets(
-    'picking Uber starts the Uber guide at step 1 with a placeholder',
-    (tester) async {
-      final app = await TestApp.create();
-      await pumpApp(tester, app);
-      await openRideGuide(tester, RideApp.uber);
-
-      expect(find.text('Open Uber'), findsOneWidget);
-      expect(find.text('Step 1 of 9'), findsOneWidget);
-      expect(
-        app.store.stored!.workflowId,
-        RideApp.uber.workflowId(fromInstall: false),
-      );
-    },
-  );
-
-  testWidgets(
-    'fresh install path starts at the Play Store and guards the OTP',
-    (tester) async {
-      final app = await TestApp.create();
-      await pumpApp(tester, app);
-      await openRideGuide(tester, RideApp.rapido, fromInstall: true);
-      expect(find.text('Install Rapido'), findsOneWidget);
-      expect(find.text('Step 1 of 12'), findsOneWidget);
-      // No Play Store recording yet: labelled placeholder.
-      expect(find.text('Picture coming soon'), findsOneWidget);
-      for (var i = 0; i < 3; i++) {
-        await tapText(tester, "I've done this");
-      }
-      expect(find.text('Enter the code you receive'), findsOneWidget);
-      expect(
-        find.textContaining('Saathi will never ask for it'),
-        findsOneWidget,
-      );
-      expect(find.textContaining('involves money'), findsNothing);
-    },
-  );
-
-  testWidgets('full Ola guide: confirm, repeat, help, back, outcome', (
+  testWidgets('the screen follows the voice agent with no taps', (
     tester,
   ) async {
     final app = await TestApp.create();
     await pumpApp(tester, app);
-    await openRideGuide(tester, RideApp.ola);
-
-    await tapText(tester, "I've done this");
-    expect(find.text('Find where to enter your destination'), findsOneWidget);
-    expect(find.text('Step 2 of 9'), findsOneWidget);
-
-    // Repeat and help never advance.
-    await tapText(tester, 'Repeat');
-    expect(find.text('Step 2 of 9'), findsOneWidget);
-    await tapText(tester, 'I need help');
-    await tapText(tester, 'Explain it more simply');
-    expect(find.text('In simple words'), findsOneWidget);
-    expect(find.text('Step 2 of 9'), findsOneWidget);
-
-    // Back keeps the earlier confirmation in history.
-    await tapText(tester, 'Back');
-    expect(find.text('Open Ola'), findsOneWidget);
-    expect(app.store.stored!.confirmedAt('open_app'), isNotNull);
-
-    for (var i = 0; i < 8; i++) {
-      await tapText(tester, "I've done this");
-    }
-    expect(find.text('What happened?'), findsOneWidget);
-    expect(find.text("I've done this"), findsNothing);
-    expect(
-      app.store.stored!.status,
-      SessionStatus.active,
-      reason: 'reaching the last step is not success',
+    final agent = GuideToolHandler(
+      guide: app.services.guide,
+      settings: app.services.settings,
     );
 
-    await tapText(tester, 'Yes, my ride is booked');
-    expect(find.text('Well done'), findsOneWidget);
-    expect(find.textContaining('You told Saathi that Ola'), findsOneWidget);
-    expect(app.store.stored!.status, SessionStatus.completed);
+    // User: "I use Ola, I already have it" -> agent calls start_guide.
+    var answer = await agent.handle({
+      'action': 'start_guide',
+      'app': 'ola',
+      'new_user': false,
+    });
+    await tester.pumpAndSettle();
+    expect(answer['step_id'], 'open_app');
+    expect(find.text('Open Ola'), findsOneWidget);
+    expect(find.text('Ola · Step 1 of 9'), findsOneWidget);
 
-    await tapText(tester, 'Done');
-    expect(find.text('Book a ride'), findsOneWidget, reason: 'not resumable');
+    // User: "done" -> agent calls step_done for the current step.
+    answer = await agent.handle({'action': 'step_done', 'step_id': 'open_app'});
+    await tester.pumpAndSettle();
+    expect(answer['step_id'], 'find_locations');
+    expect(find.text('Ola · Step 2 of 9'), findsOneWidget);
+
+    // A stale or skipping request is refused and the screen stays put.
+    answer = await agent.handle({
+      'action': 'step_done',
+      'step_id': 'check_fare',
+    });
+    await tester.pumpAndSettle();
+    expect(answer['ok'], isFalse);
+    expect(answer['step_id'], 'find_locations');
+    expect(find.text('Ola · Step 2 of 9'), findsOneWidget);
   });
 
-  testWidgets('saying no at the outcome step never claims success', (
+  testWidgets('voice-reported booking shows the finish screen', (tester) async {
+    final app = await TestApp.create();
+    await pumpApp(tester, app);
+    final agent = GuideToolHandler(
+      guide: app.services.guide,
+      settings: app.services.settings,
+    );
+    await agent.handle({'action': 'start_guide', 'app': 'rapido'});
+    final ids = app.services.guide.definition!.steps.map((s) => s.id);
+    for (final id in ids.take(ids.length - 1)) {
+      await agent.handle({'action': 'step_done', 'step_id': id});
+    }
+    // "outcome" before the final step would be refused; here we are on it.
+    final answer = await agent.handle({
+      'action': 'outcome',
+      'step_id': 'confirm_outcome',
+      'booked': true,
+    });
+    await tester.pumpAndSettle();
+    expect(answer['finished'], isTrue);
+    expect(find.text('Well done'), findsOneWidget);
+    expect(app.store.stored!.status, SessionStatus.completed);
+  });
+
+  testWidgets('taps still work: pick app, answer once, Done and Back', (
     tester,
   ) async {
     final app = await TestApp.create();
     await pumpApp(tester, app);
-    await openRideGuide(tester, RideApp.rapido);
-    for (var i = 0; i < 7; i++) {
-      await tapText(tester, "I've done this");
-    }
+    await tapText(tester, 'Ola');
+    expect(find.text('Already using Ola?'), findsOneWidget);
+    await tapText(tester, 'Yes');
+    expect(find.text('Open Ola'), findsOneWidget);
+    expect(find.text('Repeat'), findsNothing);
+    expect(find.text('I need help'), findsNothing);
+    expect(find.byTooltip('End call'), findsOneWidget, reason: 'call stays');
+
+    await done(tester);
+    expect(find.text('Ola · Step 2 of 9'), findsOneWidget);
+    await tester.tap(find.bySemanticsLabel('Back'));
+    await tester.pumpAndSettle();
+    expect(find.text('Open Ola'), findsOneWidget);
+    expect(app.store.stored!.confirmedAt('open_app'), isNotNull);
+  });
+
+  testWidgets('booked is only claimed after the user says so', (tester) async {
+    final app = await TestApp.create();
+    await pumpApp(tester, app);
+    await startGuide(tester, 'Ola');
+    await done(tester, 8);
+    expect(find.text('What happened?'), findsOneWidget);
+    expect(find.text('Done'), findsNothing);
+    expect(app.store.stored!.status, SessionStatus.active);
     await tapText(tester, "No, I didn't book");
     expect(find.text('No problem'), findsOneWidget);
     expect(find.text('Well done'), findsNothing);
-    expect(app.store.stored!.outcome, Outcome.notCompleted);
+    await tapText(tester, 'New ride');
+    expect(find.text('Book a ride'), findsOneWidget);
+  });
+
+  testWidgets('new users start at install and the OTP step warns', (
+    tester,
+  ) async {
+    final app = await TestApp.create();
+    await pumpApp(tester, app);
+    await startGuide(tester, 'Uber', newUser: true);
+    expect(find.text('Install Uber'), findsOneWidget);
+    expect(find.text('Uber · Step 1 of 14'), findsOneWidget);
+    expect(find.text('Picture coming soon'), findsOneWidget);
+    await done(tester, 4); // install, open, location, phone
+    expect(find.text('Enter the code you receive'), findsOneWidget);
+    expect(find.textContaining('Saathi will never ask for it'), findsOneWidget);
   });
 
   testWidgets('failed save keeps the step and explains', (tester) async {
     final app = await TestApp.create();
     await pumpApp(tester, app);
-    await openRideGuide(tester, RideApp.ola);
+    await startGuide(tester, 'Ola');
     app.store.failNextSave = true;
-    await tapText(tester, "I've done this");
+    await done(tester);
     expect(find.text('Open Ola'), findsOneWidget);
     expect(find.textContaining("Couldn't save your progress"), findsOneWidget);
   });
 
-  testWidgets('stop for now pauses; home offers to continue at the same step', (
-    tester,
-  ) async {
-    final app = await TestApp.create();
-    await pumpApp(tester, app);
-    await openRideGuide(tester, RideApp.ola);
-    await tapText(tester, "I've done this");
-    await tester.tap(find.byTooltip('Exit guide'));
-    await tester.pumpAndSettle();
+  group('previous guide', () {
+    Future<TestApp> withSavedGuide(WidgetTester tester) async {
+      final first = await TestApp.create();
+      await pumpApp(tester, first);
+      await startGuide(tester, 'Ola');
+      await done(tester, 2);
+      await tester.pumpWidget(const SizedBox());
+      final second = await TestApp.create(store: first.store);
+      await pumpApp(tester, second);
+      return second;
+    }
 
-    expect(app.store.stored!.status, SessionStatus.paused);
-    expect(find.text('In progress: Ola · Step 2 of 9'), findsOneWidget);
-
-    // Never resumes silently: the user is asked.
-    await tapText(tester, 'Book a ride');
-    expect(find.text('Continue where you left off?'), findsOneWidget);
-    await tapText(tester, 'Continue');
-    expect(find.text('Find where to enter your destination'), findsOneWidget);
-    expect(app.store.stored!.status, SessionStatus.active);
-  });
-
-  testWidgets('choosing "Start a new one" begins a fresh guide', (
-    tester,
-  ) async {
-    final app = await TestApp.create();
-    await pumpApp(tester, app);
-    await openRideGuide(tester, RideApp.ola);
-    await tapText(tester, "I've done this");
-    final oldId = app.store.stored!.id;
-    await tester.tap(find.byTooltip('Exit guide'));
-    await tester.pumpAndSettle();
-
-    await tapText(tester, 'Book a ride');
-    await tapText(tester, 'Start a new one');
-    await tapText(tester, 'Uber');
-    await tapText(tester, "Yes, I'm already signed in");
-    expect(find.text('Open Uber'), findsOneWidget);
-    expect(find.text('Step 1 of 9'), findsOneWidget);
-    expect(app.store.stored!.id, isNot(oldId));
-  });
-
-  testWidgets('a call from Home does not assume a paused guide', (
-    tester,
-  ) async {
-    final app = await TestApp.create();
-    await pumpApp(tester, app);
-    await openRideGuide(tester, RideApp.ola);
-    await tester.tap(find.byTooltip('Exit guide'));
-    await tester.pumpAndSettle();
-    await tapLive(tester, 'Start talking');
-    expect(app.voice.starts, 1);
-    expect(app.voice.lastContext, isEmpty);
-  });
-
-  testWidgets('progress survives an app restart', (tester) async {
-    final first = await TestApp.create();
-    await pumpApp(tester, first);
-    await openRideGuide(tester, RideApp.ola);
-    await tapText(tester, "I've done this");
-    await tapText(tester, "I've done this");
-
-    final second = await TestApp.create(store: first.store);
-    await tester.pumpWidget(const SizedBox());
-    await pumpApp(tester, second);
-    expect(find.text('In progress: Ola · Step 3 of 9'), findsOneWidget);
-  });
-
-  group('voice', () {
-    testWidgets('mic rationale is shown before the first call', (tester) async {
-      final app = await TestApp.create();
-      app.android.micGranted = false;
-      await pumpApp(tester, app);
-      await tapText(tester, 'Start talking');
-      expect(find.text('Saathi needs your microphone'), findsOneWidget);
-      await tapText(tester, 'Not now');
-      expect(app.voice.starts, 0);
-    });
-
-    testWidgets('call passes the current step as context and shows status', (
+    testWidgets('asks before continuing; the call is not told about it', (
       tester,
     ) async {
-      final app = await TestApp.create();
-      await pumpApp(tester, app);
-      await openRideGuide(tester, RideApp.ola);
-      await tester.tap(find.text('Talk to Saathi'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 400));
-
-      expect(app.voice.starts, 1);
-      expect(app.voice.lastContext!['saathi_task'], 'Book a ride with Ola');
-      expect(app.voice.lastContext!['saathi_step'], contains('Open Ola'));
-      expect(find.text('Listening'), findsWidgets);
-      expect(find.text('Back to your guide'), findsOneWidget);
-
-      app.voice.emit(const VoiceStatus(VoicePhase.speaking));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Saathi is speaking'), findsWidgets);
-
-      await tester.tap(find.text('End call'));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('Call ended'), findsOneWidget);
-      expect(find.text('Talk again'), findsOneWidget);
+      final app = await withSavedGuide(tester);
+      expect(find.text('Continue where you left off?'), findsOneWidget);
+      expect(find.textContaining('Ola · Step 3 of 9'), findsOneWidget);
+      expect(app.voice.lastContext!.keys, ['saathi_device']);
+      await tapText(tester, 'Continue');
+      expect(find.text('Ola · Step 3 of 9'), findsOneWidget);
     });
 
-    testWidgets('microphone denied explains and offers settings', (
-      tester,
-    ) async {
+    testWidgets('"Start a new one" goes back to the app list', (tester) async {
+      await withSavedGuide(tester);
+      await tapText(tester, 'Start a new one');
+      expect(find.text('Book a ride'), findsOneWidget);
+    });
+  });
+
+  group('call bar', () {
+    testWidgets('mic denied offers to allow it', (tester) async {
       final app = await TestApp.create();
       await pumpApp(tester, app);
-      await tapLive(tester, 'Start talking');
       app.voice.emit(
         const VoiceStatus(
           VoicePhase.failed,
           failure: VoiceFailure.microphoneDenied,
         ),
       );
-      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
       expect(find.text("Couldn't start the call"), findsOneWidget);
-      expect(find.textContaining('needs the microphone'), findsOneWidget);
-      await tapText(tester, 'Open settings');
+      await tapText(tester, 'Allow microphone');
       expect(app.android.settingsOpened, 1);
     });
 
-    testWidgets('dropped connection says progress is saved', (tester) async {
+    testWidgets('after the call ends, one tap calls again', (tester) async {
       final app = await TestApp.create();
       await pumpApp(tester, app);
-      await tapLive(tester, 'Start talking');
-      app.voice.emit(const VoiceStatus(VoicePhase.disconnected));
-      await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text('The voice call ended'), findsOneWidget);
-      expect(find.textContaining('progress is saved'), findsOneWidget);
+      await tester.tap(find.byTooltip('End call'));
+      await tester.pumpAndSettle();
+      expect(find.text('Call ended'), findsOneWidget);
+      await tapText(tester, 'Call again');
+      expect(app.voice.starts, 2);
     });
+
+    testWidgets('mute toggles', (tester) async {
+      final app = await TestApp.create();
+      await pumpApp(tester, app);
+      await tester.tap(find.byTooltip('Mute'));
+      await tester.pumpAndSettle();
+      expect(app.voice.muted, isTrue);
+      expect(find.text('Microphone paused'), findsOneWidget);
+    });
+  });
+
+  testWidgets('language switch updates the screen', (tester) async {
+    final app = await TestApp.create();
+    await pumpApp(tester, app);
+    await tapText(tester, 'मराठी');
+    expect(find.text('राइड बुक करा'), findsOneWidget);
+    expect(app.services.settings.language, 'mr');
   });
 
   testWidgets('Marathi at 2x text on a small phone has no overflow', (
@@ -334,19 +260,19 @@ void main() {
     tester.view.physicalSize = const Size(720, 1280); // 360x640 @2x
     tester.view.devicePixelRatio = 2;
     tester.platformDispatcher.textScaleFactorTestValue = 2;
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.view.reset);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
     final app = await TestApp.create(language: 'mr');
     await tester.pumpWidget(app.widget);
     await tester.pumpAndSettle();
-    await tapText(tester, 'राइड बुक करा');
     await tapText(tester, 'Ola');
-    await tapText(tester, 'हो, मी आधीच साइन इन केले आहे');
-    // Walk to the longest (sensitive) step.
+    await tapText(tester, 'हो');
     for (var i = 0; i < 6; i++) {
-      await tapText(tester, 'मी हे केले');
+      await tapText(tester, 'झाले');
     }
     expect(find.text('खात्री असेल तरच बुक करा'), findsOneWidget);
-    // Any overflow during the walk fails the test via the framework's own reporter.
   });
 }

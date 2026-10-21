@@ -14,12 +14,16 @@ import '../domain/workflow_store.dart';
 class SyncedWorkflowStore implements WorkflowStore {
   SyncedWorkflowStore({
     required this.local,
-    required this.remote,
+    WorkflowStore? remote,
     this.remoteTimeout = const Duration(seconds: 3),
-  });
+  }) : _remote = remote;
 
   final WorkflowStore local;
-  final WorkflowStore remote;
+  WorkflowStore? _remote;
+  WorkflowStore? get remote => _remote;
+
+  /// Cloud sync can be attached after launch so startup never waits on network.
+  void attachRemote(WorkflowStore remote) => _remote = remote;
   final Duration remoteTimeout;
 
   /// Last cloud sync result, for diagnostics.
@@ -27,7 +31,7 @@ class SyncedWorkflowStore implements WorkflowStore {
   Future<void> _pendingSync = Future.value();
 
   @override
-  String get name => 'phone + ${remote.name}';
+  String get name => _remote == null ? 'phone' : 'phone + ${_remote!.name}';
 
   @override
   Future<void> save(
@@ -39,6 +43,8 @@ class SyncedWorkflowStore implements WorkflowStore {
   }
 
   Future<void> _sync(WorkflowSession session) async {
+    final remote = _remote;
+    if (remote == null) return;
     try {
       await remote.save(session, expectedRevision: session.revision - 1);
       lastSyncError = null;
@@ -54,6 +60,8 @@ class SyncedWorkflowStore implements WorkflowStore {
   @override
   Future<WorkflowSession?> loadActive() async {
     final onPhone = await local.loadActive();
+    final remote = _remote;
+    if (remote == null) return onPhone;
     WorkflowSession? inCloud;
     try {
       inCloud = await remote.loadActive().timeout(remoteTimeout);
@@ -77,6 +85,8 @@ class SyncedWorkflowStore implements WorkflowStore {
   @override
   Future<void> clear() async {
     await local.clear();
+    final remote = _remote;
+    if (remote == null) return;
     unawaited(
       remote.clear().catchError((Object e) {
         log('sync', 'cloud clear failed: $e');

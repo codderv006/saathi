@@ -793,6 +793,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'In progress: {app}'**
   String inProgressApp(String app);
+
+  /// No description provided for @callSaathi.
+  ///
+  /// In en, this message translates to:
+  /// **'Call Saathi'**
+  String get callSaathi;
+
+  /// No description provided for @callAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Call again'**
+  String get callAgain;
+
+  /// No description provided for @allowMic.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow microphone'**
+  String get allowMic;
+
+  /// No description provided for @alreadyUsing.
+  ///
+  /// In en, this message translates to:
+  /// **'Already using {app}?'**
+  String alreadyUsing(String app);
+
+  /// No description provided for @yesShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes'**
+  String get yesShort;
+
+  /// No description provided for @noNewUser.
+  ///
+  /// In en, this message translates to:
+  /// **'No, I\'m new'**
+  String get noNewUser;
+
+  /// No description provided for @newRide.
+  ///
+  /// In en, this message translates to:
+  /// **'New ride'**
+  String get newRide;
 }
 
 class _AppLocalizationsDelegate

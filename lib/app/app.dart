@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../features/home/home_screen.dart';
-import '../features/onboarding/onboarding_screen.dart';
+import '../features/call/call_screen.dart';
 import '../l10n/app_localizations.dart';
 import 'app_scope.dart';
 import 'theme/app_colors.dart';
@@ -27,9 +26,8 @@ class SaathiApp extends StatelessWidget {
           locale: Locale(settings.language),
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: settings.onboardingDone
-              ? const HomeScreen()
-              : const OnboardingScreen(),
+          // One screen: the call starts on open, steps show beneath it.
+          home: const CallScreen(),
           builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
             value: const SystemUiOverlayStyle(
               statusBarColor: AppColors.background,

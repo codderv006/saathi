@@ -55,7 +55,8 @@ class _VoiceDiagnosticsScreenState extends State<VoiceDiagnosticsScreen>
   Future<void> _checkCloud() async {
     final services = AppScope.of(context);
     final store = services.guide.store;
-    if (store is! SyncedWorkflowStore) {
+    final remote = store is SyncedWorkflowStore ? store.remote : null;
+    if (store is! SyncedWorkflowStore || remote == null) {
       log(
         'cloud',
         'cloud sync is off (Firebase not configured or unavailable)',
@@ -65,7 +66,7 @@ class _VoiceDiagnosticsScreenState extends State<VoiceDiagnosticsScreen>
     log('cloud', 'uid=${services.userId} lastSyncError=${store.lastSyncError}');
     final phone = await store.local.loadActive();
     try {
-      final cloud = await store.remote.loadActive();
+      final cloud = await remote.loadActive();
       log('cloud', 'phone: ${phone ?? 'none'}');
       log('cloud', 'cloud: ${cloud ?? 'none'}');
       log(

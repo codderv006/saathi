@@ -129,7 +129,17 @@ class _ScreenshotGuideState extends State<ScreenshotGuide>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return switch (_load) {
-      _Load.missing => _Placeholder(asset: widget.screenshot.asset),
+      // Scales down to fit whatever space the screen gives the picture.
+      _Load.missing => ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: widget.maxHeight),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: SizedBox(
+            width: 320,
+            child: _Placeholder(asset: widget.screenshot.asset),
+          ),
+        ),
+      ),
       _Load.loading => SizedBox(
         height: widget.maxHeight * 0.6,
         child: const DecoratedBox(

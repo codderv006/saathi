@@ -16,8 +16,8 @@ class AppServices {
     this.userId,
   });
 
-  /// Firebase anonymous uid when cloud sync is active; null = phone only.
-  final String? userId;
+  /// Firebase anonymous uid once cloud sync is attached; null = phone only.
+  String? userId;
 
   final SettingsController settings;
   final VoiceSessionService voice;

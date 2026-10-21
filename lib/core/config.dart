@@ -26,6 +26,10 @@ class PocConfig {
       firebaseProjectId.isNotEmpty &&
       firebaseSenderId.isNotEmpty;
 
+  /// Base of the local server (session mint + guide events), from SESSION_URL.
+  static String get serverBase =>
+      sessionUrl.replaceFirst(RegExp(r'/session$'), '');
+
   static List<String> get missing => [
     if (sessionUrl.isEmpty) 'SESSION_URL',
     if (devSessionToken.isEmpty) 'DEV_SESSION_TOKEN',

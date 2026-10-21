@@ -115,5 +115,12 @@
   "secretCodeNote": "हा कोड कोणालाही सांगू नका. साथी तो कधीही विचारणार नाही.",
   "resumeTitle": "जिथे थांबलात तिथून पुढे सुरू करायचे?",
   "resumeNew": "नवीन सुरू करा",
-  "inProgressApp": "सुरू आहे: {app}"
+  "inProgressApp": "सुरू आहे: {app}",
+  "callSaathi": "साथीला कॉल करा",
+  "callAgain": "पुन्हा कॉल करा",
+  "allowMic": "मायक्रोफोनला परवानगी द्या",
+  "alreadyUsing": "{app} आधीपासून वापरता का?",
+  "yesShort": "हो",
+  "noNewUser": "नाही, नवीन आहे",
+  "newRide": "नवीन राइड"
 }

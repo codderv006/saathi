@@ -394,4 +394,27 @@ class AppLocalizationsMr extends AppLocalizations {
   String inProgressApp(String app) {
     return 'सुरू आहे: $app';
   }
+
+  @override
+  String get callSaathi => 'साथीला कॉल करा';
+
+  @override
+  String get callAgain => 'पुन्हा कॉल करा';
+
+  @override
+  String get allowMic => 'मायक्रोफोनला परवानगी द्या';
+
+  @override
+  String alreadyUsing(String app) {
+    return '$app आधीपासून वापरता का?';
+  }
+
+  @override
+  String get yesShort => 'हो';
+
+  @override
+  String get noNewUser => 'नाही, नवीन आहे';
+
+  @override
+  String get newRide => 'नवीन राइड';
 }

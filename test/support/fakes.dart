@@ -107,14 +107,10 @@ class TestApp {
   final MemoryStore store;
 
   static Future<TestApp> create({
-    bool onboarded = true,
     String language = 'en',
     MemoryStore? store,
   }) async {
-    SharedPreferences.setMockInitialValues({
-      'saathi.onboardingDone': onboarded,
-      'saathi.language': language,
-    });
+    SharedPreferences.setMockInitialValues({'saathi.language': language});
     final settings = await SettingsController.load();
     final voice = FakeVoice();
     final android = FakeAndroid();

@@ -160,5 +160,19 @@
         "type": "String"
       }
     }
-  }
+  },
+  "callSaathi": "Call Saathi",
+  "callAgain": "Call again",
+  "allowMic": "Allow microphone",
+  "alreadyUsing": "Already using {app}?",
+  "@alreadyUsing": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "yesShort": "Yes",
+  "noNewUser": "No, I'm new",
+  "newRide": "New ride"
 }

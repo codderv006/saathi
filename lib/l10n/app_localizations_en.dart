@@ -390,4 +390,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String inProgressApp(String app) {
     return 'In progress: $app';
   }
+
+  @override
+  String get callSaathi => 'Call Saathi';
+
+  @override
+  String get callAgain => 'Call again';
+
+  @override
+  String get allowMic => 'Allow microphone';
+
+  @override
+  String alreadyUsing(String app) {
+    return 'Already using $app?';
+  }
+
+  @override
+  String get yesShort => 'Yes';
+
+  @override
+  String get noNewUser => 'No, I\'m new';
+
+  @override
+  String get newRide => 'New ride';
 }
