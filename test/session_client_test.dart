@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:saathi_poc/voice/session_client.dart';
+import 'package:saathi_poc/features/voice_session/data/session_client.dart';
 
 void main() {
   const validSession = {

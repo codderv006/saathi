@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.net.Uri
+import android.provider.Settings
 import android.media.AudioRecordingConfiguration
 import android.os.Build
 import android.os.Handler
@@ -37,6 +39,14 @@ class MainActivity : FlutterActivity() {
         MethodChannel(messenger, "saathi_poc/android").setMethodCallHandler { call, result ->
             when (call.method) {
                 "requestPermissions" -> requestVoicePermissions(result)
+                "permissionState" -> result.success(permissionState())
+                "openAppSettings" -> {
+                    startActivity(
+                        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                    result.success(true)
+                }
                 "startVoiceService" -> result.success(startVoiceService())
                 "stopVoiceService" -> {
                     stopService(Intent(this, VoiceSessionService::class.java))

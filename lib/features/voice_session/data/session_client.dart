@@ -12,26 +12,35 @@ class SessionClient {
   final String token;
   final http.Client _client;
 
-  /// [language] null = the agent's default language.
-  Future<Map<String, Object?>> mint({String? language}) async {
+  /// [language] null = the agent's default language. [context] is forwarded as
+  /// Bolna `user_data` (the backend whitelists keys).
+  Future<Map<String, Object?>> mint({
+    String? language,
+    Map<String, String> context = const {},
+  }) async {
     final http.Response response;
     try {
       response = await _client
           .post(
             Uri.parse(url),
             headers: {'Content-Type': 'application/json', 'X-Dev-Token': token},
-            body: jsonEncode({'language': ?language}),
+            body: jsonEncode({
+              'language': ?language,
+              if (context.isNotEmpty) 'user_data': context,
+            }),
           )
           .timeout(const Duration(seconds: 15));
     } catch (e) {
       throw SessionException(
         'Backend unreachable at $url ($e). Is server/session_server.mjs running and '
         '`adb reverse tcp:8787 tcp:8787` set?',
+        unreachable: true,
       );
     }
     if (response.statusCode != 200) {
       throw SessionException(
         'Mint failed: HTTP ${response.statusCode} ${_trim(response.body)}',
+        statusCode: response.statusCode,
       );
     }
     final session = jsonDecode(response.body) as Map<String, Object?>;
@@ -49,8 +58,14 @@ class SessionClient {
 }
 
 class SessionException implements Exception {
-  const SessionException(this.message);
+  const SessionException(
+    this.message, {
+    this.statusCode,
+    this.unreachable = false,
+  });
   final String message;
+  final int? statusCode;
+  final bool unreachable;
   @override
   String toString() => message;
 }

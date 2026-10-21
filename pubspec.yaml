@@ -9,7 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   http: ^1.6.0
+  intl: any
+  shared_preferences: ^2.5.5
   webview_flutter: ^4.13.1
   webview_flutter_android: ^4.12.0
 
@@ -20,5 +24,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true
   assets:
     - assets/bolna/
+    - assets/workflows/ola/
+    - assets/workflows/uber/
+    - assets/workflows/rapido/

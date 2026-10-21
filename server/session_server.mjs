@@ -39,6 +39,9 @@ if (DEV_SESSION_TOKEN.length < 16) {
 
 const BOLNA_MINT_URL = "https://api.bolna.ai/web-call/session";
 const LANGUAGES = new Set(["en", "mr"]);
+// Context the app may pass to the agent prompt as {{variables}}. Informational only:
+// the app's workflow engine, not the agent, decides the current step.
+const USER_DATA_KEYS = ["saathi_task", "saathi_step", "saathi_instruction"];
 const MAX_MINTS_PER_MINUTE = 10; // each mint can hold a concurrent-call slot on the account
 let recentMints = [];
 
@@ -58,7 +61,7 @@ async function readJson(req) {
   let size = 0;
   for await (const chunk of req) {
     size += chunk.length;
-    if (size > 4096) throw new Error("body too large");
+    if (size > 8192) throw new Error("body too large");
     chunks.push(chunk);
   }
   return JSON.parse(Buffer.concat(chunks).toString() || "{}");
@@ -80,8 +83,14 @@ http
       return send(res, 400, { error: `invalid body: ${e.message}` });
     }
 
-    // Only agent_id and an optional language reach Bolna. Nothing else from the client.
+    // Only agent_id, an optional language and whitelisted context reach Bolna.
     const mintBody = { agent_id: BOLNA_AGENT_ID };
+    const userData = {};
+    for (const key of USER_DATA_KEYS) {
+      const value = input.user_data?.[key];
+      if (typeof value === "string" && value.length <= 400) userData[key] = value;
+    }
+    if (Object.keys(userData).length) mintBody.user_data = userData;
     if (input.language !== undefined && input.language !== null) {
       if (!LANGUAGES.has(input.language)) return send(res, 400, { error: "language must be en or mr" });
       // Bolna returns 400 if the agent isn't multilingual or lacks this language.

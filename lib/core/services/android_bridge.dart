@@ -11,6 +11,12 @@ class AndroidBridge {
   Future<Map<Object?, Object?>> requestPermissions() async => (await _methods
       .invokeMethod<Map<Object?, Object?>>('requestPermissions'))!;
 
+  /// Current grant state without prompting.
+  Future<Map<Object?, Object?>> permissionState() async =>
+      (await _methods.invokeMethod<Map<Object?, Object?>>('permissionState'))!;
+
+  Future<void> openAppSettings() => _methods.invokeMethod('openAppSettings');
+
   Future<Map<Object?, Object?>> startVoiceService() async => (await _methods
       .invokeMethod<Map<Object?, Object?>>('startVoiceService'))!;
 

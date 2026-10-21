@@ -19,6 +19,7 @@
 
   var call = null;
   var levelSum = 0, levelCount = 0, levelMax = 0;
+  var recentMax = 0; // for the app's speaking/listening indicator
 
   window.addEventListener('error', function (e) { post('js-error', { message: String(e.message) }); });
   window.addEventListener('unhandledrejection', function (e) {
@@ -45,6 +46,7 @@
     });
     call.on('volume-level', function (v) {
       levelSum += v; levelCount++; if (v > levelMax) levelMax = v;
+      if (v > recentMax) recentMax = v;
     });
     // Failures are already reported through the 'error' event.
     call.start().catch(function () {});
@@ -52,6 +54,12 @@
 
   window.saathiStop = function () { if (call) return call.stop(); };
   window.saathiMute = function (muted) { if (call) call.setMuted(muted); };
+
+  // Agent audio level for the speaking indicator, 4x a second while a call is active.
+  setInterval(function () {
+    if (call && call.getState() === 'active') post('level', { v: recentMax });
+    recentMax = 0;
+  }, 250);
 
   // Heartbeat: shows whether JS timers keep running in the background (gaps between
   // beats), whether agent audio is still arriving (level samples / avg level), and the

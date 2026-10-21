@@ -1,0 +1,154 @@
+{
+  "@@locale": "en",
+  "appName": "Saathi",
+  "onboardingTitle": "Your companion for everyday apps.",
+  "onboardingBody": "Tell Saathi what you want to do. We'll guide you one step at a time.",
+  "getStarted": "Get started",
+  "chooseLanguage": "Choose your language",
+  "privacyNote": "You stay in control. Saathi never taps, books or pays for you.",
+  "homeHeading": "What would you like help with?",
+  "homeSubheading": "I'll walk you through it, one step at a time.",
+  "talkToSaathi": "Talk to Saathi",
+  "voiceCardBody": "Speak in English or Marathi. Saathi will listen and guide you.",
+  "startTalking": "Start talking",
+  "openCall": "Open call",
+  "guidesHeading": "Guides",
+  "taskBookCab": "Book a ride",
+  "taskBookCabDetail": "Step-by-step help with Ola, Uber or Rapido",
+  "continueGuide": "Continue",
+  "startOver": "Start over",
+  "stepOf": "Step {current} of {total}",
+  "@stepOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "settings": "Settings",
+  "voiceIdle": "Ready when you are",
+  "voiceIdleHint": "Tap Start talking and say what you'd like to do.",
+  "voiceRequestingPermission": "Waiting for permission",
+  "voiceRequestingPermissionHint": "Please allow the microphone so Saathi can hear you.",
+  "voiceConnecting": "Connecting to Saathi",
+  "voiceConnectingHint": "This usually takes a few seconds.",
+  "voiceListening": "Listening",
+  "voiceListeningHint": "Speak naturally. Saathi can hear you.",
+  "voiceSpeaking": "Saathi is speaking",
+  "voiceSpeakingHint": "You can interrupt any time.",
+  "voiceMuted": "Microphone paused",
+  "voiceMutedHint": "Saathi can't hear you until you unmute.",
+  "voiceEnded": "Call ended",
+  "voiceEndedHint": "You can talk to Saathi again whenever you like.",
+  "voiceDisconnected": "The voice call ended",
+  "voiceDisconnectedHint": "Your progress is saved. You can talk again.",
+  "voiceFailed": "Couldn't start the call",
+  "errMicDenied": "Saathi needs the microphone to hear you. You can allow it in Settings.",
+  "errNotConfigured": "Voice isn't set up on this phone yet. You can still use the step-by-step guide.",
+  "errNetwork": "Couldn't reach Saathi. Check your internet connection and try again.",
+  "errBusy": "Saathi is busy right now. Please try again in a minute.",
+  "errUnavailable": "Voice can't run on this phone right now. You can still use the guide.",
+  "errGeneric": "Something went wrong. Please try again.",
+  "endCall": "End call",
+  "mute": "Mute",
+  "unmute": "Unmute",
+  "tryAgain": "Try again",
+  "talkAgain": "Talk again",
+  "openSettings": "Open settings",
+  "backToGuide": "Back to your guide",
+  "currentStepLabel": "Current step",
+  "voiceNoGuideHint": "Try saying “Help me book a cab”.",
+  "micRationaleTitle": "Saathi needs your microphone",
+  "micRationaleBody": "So Saathi can hear what you say. The microphone is only used while a call is on, and you can end it any time.",
+  "continueAction": "Continue",
+  "notNow": "Not now",
+  "iveDoneThis": "I've done this",
+  "repeatInstructions": "Repeat",
+  "needHelp": "I need help",
+  "back": "Back",
+  "exitGuide": "Exit guide",
+  "sensitiveNote": "This involves money. Take your time — only you decide.",
+  "voiceHeardDone": "Saathi heard you say this step is done.",
+  "yesDone": "Yes, it's done",
+  "notYet": "Not yet",
+  "simplerHeading": "In simple words",
+  "outcomeBooked": "Yes, my ride is booked",
+  "outcomeNotBooked": "No, I didn't book",
+  "progressSaved": "Your progress is saved.",
+  "saveFailed": "Couldn't save your progress. Nothing was changed — please try again.",
+  "actionNotPossible": "That isn't possible on this step.",
+  "helpTitle": "How can Saathi help?",
+  "helpRepeat": "Repeat that",
+  "helpSimpler": "Explain it more simply",
+  "helpShowAgain": "Show me the picture again",
+  "helpGoBack": "Go back one step",
+  "helpStop": "Stop for now",
+  "helpTalk": "Talk to Saathi",
+  "copyHelperButton": "Copy an address from Saathi",
+  "copySheetTitle": "Copy an address",
+  "copySheetBody": "Type the address here and copy it. Then, in your ride app, press and hold the destination box and tap Paste. Saathi can't paste it for you.",
+  "copyFieldLabel": "Address",
+  "copyAction": "Copy",
+  "copied": "Copied. Now open your ride app and paste it yourself.",
+  "copyEmpty": "Type an address first.",
+  "copyFailed": "Couldn't copy. Please try again.",
+  "screenshotPlaceholderTitle": "Picture coming soon",
+  "screenshotPlaceholderBody": "Placeholder — the real app screenshot hasn't been added yet.",
+  "screenshotLabel": "Screenshot: {description}",
+  "@screenshotLabel": {
+    "placeholders": {
+      "description": {
+        "type": "String"
+      }
+    }
+  },
+  "completedTitle": "Well done",
+  "completedBody": "You told Saathi that {app} booked your ride. You did it yourself. {app} will show you the ride details.",
+  "notCompletedTitle": "No problem",
+  "notCompletedBody": "Nothing was booked through Saathi. You can try again whenever you like.",
+  "done": "Done",
+  "returnHome": "Return home",
+  "restoreIncompatible": "This guide has changed since you last used it. Please start again.",
+  "restoreFailed": "Couldn't load your saved progress. You can start again.",
+  "workflowMissing": "This guide isn't available right now.",
+  "settingsLanguage": "Language",
+  "settingsPrivacy": "Privacy",
+  "settingsPrivacyBody": "Saathi guides you, but never taps, types, books or pays for you. Your guide progress is saved on this phone. Voice calls are handled by our voice partner, Bolna, so Saathi can understand you. Never share OTPs, PINs or passwords with Saathi.",
+  "settingsVersion": "Version",
+  "settingsDiagnostics": "Voice diagnostics (for developers)",
+  "languageEnglish": "English",
+  "languageMarathi": "मराठी",
+  "chooseAppTitle": "Which app do you use?",
+  "chooseAppBody": "Saathi will guide you in the app you already have on your phone.",
+  "continueWithApp": "Continue in {app}",
+  "@continueWithApp": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "@completedBody": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "setupQuestion": "Is {app} already set up on your phone?",
+  "@setupQuestion": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "setupYes": "Yes, I'm already signed in",
+  "setupYesDetail": "Start from booking a ride",
+  "setupNo": "No, help me install it",
+  "setupNoDetail": "Start from installing the app and signing up",
+  "secretCodeNote": "Never share this code with anyone. Saathi will never ask for it."
+}
