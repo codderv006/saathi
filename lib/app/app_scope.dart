@@ -13,7 +13,11 @@ class AppServices {
     required this.guide,
     required this.android,
     this.startupRestore = RestoreResult.none,
+    this.userId,
   });
+
+  /// Firebase anonymous uid when cloud sync is active; null = phone only.
+  final String? userId;
 
   final SettingsController settings;
   final VoiceSessionService voice;

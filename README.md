@@ -19,7 +19,7 @@ screenshot, and waits for the user to confirm.
 | Bolna voice (WebView SDK) inside the app | Done, device-tested: connect, MR session, background 20 s, return, mic released |
 | Real screenshots + annotations | **Waiting for your recordings** |
 | Agent prompt using step context | Written (`docs/bolna_agent_prompt.md`), **not yet applied** in Bolna |
-| Firebase (anon auth, Firestore, rules, Cloud Functions) | Code parked in `../saathi_parked/`; **needs a Firebase project** |
+| Firebase (Spark, free): anonymous auth + Firestore cloud copy | Done, device-tested (project `saathi-b82ed`): sign-in, phone-first save with background cloud sync, read-back IN SYNC through live rules. Rules: 10 emulator tests. No Cloud Functions (Blaze-only) |
 
 ## Run on a phone
 
@@ -30,9 +30,15 @@ flutter run --dart-define-from-file=poc_config.json
 ```
 
 Without `poc_config.json` the app still runs; voice shows "Voice isn't set up on this
-phone yet" and the guides work normally.
+phone yet", progress stays on the phone only, and the guides work normally.
 
-Checks: `flutter analyze` · `flutter test` (54 tests) · `node --check server/session_server.mjs`
+Firebase values in `poc_config.json` come from `android/app/google-services.json`
+(both gitignored). Progress is saved on the phone first and copied to Firestore in the
+background; offline use never blocks a step. Anonymous accounts don't survive an
+uninstall, so restoring after a reinstall needs real sign-in later.
+
+Checks: `flutter analyze` · `flutter test` (60 tests) · `cd firebase && npm test` (rules, needs Java) ·
+`node --check server/session_server.mjs`. Deploy rules: `cd firebase && npm run deploy:rules`.
 
 ## Structure
 
@@ -54,6 +60,7 @@ assets/
   bolna/               official @bolna/web-call v3.0.1 (vendored) + call page
   workflows/<app>/     screenshots — see assets/workflows/MANIFEST.md
 server/                local session-mint backend (dev only)
+firebase/              firestore.rules + emulator rules tests
 tools/extract_frames.py   pull candidate screenshots out of screen recordings
 docs/                  agent prompt, PoC voice results
 ```

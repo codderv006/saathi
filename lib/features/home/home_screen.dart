@@ -54,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
         sessionId: SettingsController.randomId(),
         installationId: services.settings.installationId,
         language: services.settings.language,
+        userId: services.userId,
       );
       if (!mounted) return;
       setState(() => _starting = false);

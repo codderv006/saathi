@@ -1,0 +1,54 @@
+rules_version = '2';
+
+// Saathi — guide progress. Each anonymous user can only touch their own records.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    // users/{uid}: pointer to the user's active session.
+    match /users/{uid} {
+      allow read, delete: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(
+             ['activeSessionId', 'installationId', 'language', 'updatedAt'])
+        && request.resource.data.activeSessionId is string
+        && request.resource.data.language in ['en', 'mr'];
+    }
+
+    // sessions/{sessionId}: one guide run. Small by design: no audio, transcripts,
+    // OTPs, PINs or payment data.
+    match /sessions/{sessionId} {
+      function validSession(d) {
+        return d.keys().hasOnly([
+            'id', 'installationId', 'userId', 'workflowId', 'currentStepId',
+            'status', 'language', 'outcome', 'history', 'revision',
+            'createdAt', 'updatedAt', 'ownerUid', 'serverUpdatedAt'])
+          && d.id == sessionId
+          && d.ownerUid == request.auth.uid
+          && d.status in ['active', 'paused', 'completed', 'ended']
+          && d.language in ['en', 'mr']
+          && d.revision is int
+          && d.history is list && d.history.size() <= 200
+          && d.currentStepId is string && d.currentStepId.size() <= 64;
+      }
+
+      allow read, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+
+      allow create: if signedIn() && validSession(request.resource.data);
+
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && validSession(request.resource.data)
+        && request.resource.data.workflowId == resource.data.workflowId
+        // Progress only moves forward: stale or duplicate writes are rejected.
+        && request.resource.data.revision > resource.data.revision
+        // A finished session is never reopened.
+        && !(resource.data.status in ['completed', 'ended']);
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

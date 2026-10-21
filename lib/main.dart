@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 
 import 'app/app.dart';
@@ -6,7 +9,10 @@ import 'core/config.dart';
 import 'core/services/android_bridge.dart';
 import 'core/services/debug_log.dart';
 import 'core/services/settings_controller.dart';
+import 'features/guided_workflow/data/firestore_workflow_store.dart';
 import 'features/guided_workflow/data/local_workflow_store.dart';
+import 'features/guided_workflow/data/synced_workflow_store.dart';
+import 'features/guided_workflow/domain/workflow_store.dart';
 import 'features/guided_workflow/domain/workflow_controller.dart';
 import 'features/guided_workflow/data/workflow_registry.dart';
 import 'features/voice_session/data/bolna_webview_voice_service.dart';
@@ -31,8 +37,17 @@ Future<void> main() async {
         : null,
   );
 
+  final uid = await _signInAnonymously();
+  final WorkflowStore store = uid == null
+      ? LocalWorkflowStore()
+      : SyncedWorkflowStore(
+          local: LocalWorkflowStore(),
+          remote: FirestoreWorkflowStore(FirebaseFirestore.instance, uid),
+        );
+  log('init', 'progress store: ${store.name}');
+
   final guide = WorkflowController(
-    store: LocalWorkflowStore(),
+    store: store,
     findDefinition: WorkflowRegistry.find,
   );
   final restore = await guide.restore();
@@ -46,7 +61,43 @@ Future<void> main() async {
         guide: guide,
         android: android,
         startupRestore: restore,
+        userId: uid,
       ),
     ),
   );
+}
+
+/// Anonymous Firebase identity (Spark plan, free). Returns null if Firebase isn't
+/// configured or can't start (e.g. offline on first launch): the app then keeps
+/// progress on the phone only for this run.
+Future<String?> _signInAnonymously() async {
+  if (!PocConfig.firebaseConfigured) {
+    log('init', 'Firebase not configured: progress stays on this phone');
+    return null;
+  }
+  try {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: PocConfig.firebaseApiKey,
+        appId: PocConfig.firebaseAppId,
+        projectId: PocConfig.firebaseProjectId,
+        messagingSenderId: PocConfig.firebaseSenderId,
+      ),
+    );
+    final auth = FirebaseAuth.instance;
+    final existing = auth.currentUser;
+    final user =
+        existing ??
+        (await auth.signInAnonymously().timeout(
+          const Duration(seconds: 6),
+        )).user!;
+    log(
+      'init',
+      'Firebase uid=${user.uid} (${existing != null ? 'restored' : 'new anonymous'})',
+    );
+    return user.uid;
+  } catch (e) {
+    log('init', 'Firebase unavailable, using phone-only progress: $e');
+    return null;
+  }
 }

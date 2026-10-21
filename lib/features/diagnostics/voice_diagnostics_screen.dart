@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../app/app_scope.dart';
 import '../../core/config.dart';
 import '../../core/services/debug_log.dart';
+import '../guided_workflow/data/synced_workflow_store.dart';
 import '../voice_session/data/bolna_webview_voice_service.dart';
 
 /// Developer screen carried over from the device-verified PoC: raw log, language,
@@ -46,6 +47,35 @@ class _VoiceDiagnosticsScreenState extends State<VoiceDiagnosticsScreen>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.resumed) {
       _logAudio();
+    }
+  }
+
+  /// Reads the session back from Firestore (through the real security rules) and
+  /// compares it with the phone copy.
+  Future<void> _checkCloud() async {
+    final services = AppScope.of(context);
+    final store = services.guide.store;
+    if (store is! SyncedWorkflowStore) {
+      log(
+        'cloud',
+        'cloud sync is off (Firebase not configured or unavailable)',
+      );
+      return;
+    }
+    log('cloud', 'uid=${services.userId} lastSyncError=${store.lastSyncError}');
+    final phone = await store.local.loadActive();
+    try {
+      final cloud = await store.remote.loadActive();
+      log('cloud', 'phone: ${phone ?? 'none'}');
+      log('cloud', 'cloud: ${cloud ?? 'none'}');
+      log(
+        'cloud',
+        cloud?.id == phone?.id && cloud?.revision == phone?.revision
+            ? 'IN SYNC'
+            : 'DIFFERENT (sync pending or failed)',
+      );
+    } catch (e) {
+      log('cloud', 'cloud read failed: $e');
     }
   }
 
@@ -132,6 +162,11 @@ class _VoiceDiagnosticsScreenState extends State<VoiceDiagnosticsScreen>
                         tooltip: 'Log audio state',
                         onPressed: _logAudio,
                         icon: const Icon(Icons.mic_external_on),
+                      ),
+                      IconButton(
+                        tooltip: 'Check cloud copy',
+                        onPressed: _checkCloud,
+                        icon: const Icon(Icons.cloud_sync_outlined),
                       ),
                     ],
                   ),

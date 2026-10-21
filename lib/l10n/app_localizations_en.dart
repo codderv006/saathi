@@ -333,7 +333,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsPrivacyBody =>
-      'Saathi guides you, but never taps, types, books or pays for you. Your guide progress is saved on this phone. Voice calls are handled by our voice partner, Bolna, so Saathi can understand you. Never share OTPs, PINs or passwords with Saathi.';
+      'Saathi guides you, but never taps, types, books or pays for you. Your guide progress is saved on this phone, with a backup copy in Saathi\'s cloud. Voice calls are handled by our voice partner, Bolna, so Saathi can understand you. Never share OTPs, PINs or passwords with Saathi.';
 
   @override
   String get settingsVersion => 'Version';

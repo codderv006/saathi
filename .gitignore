@@ -56,3 +56,8 @@ android/hs_err_pid*.log
 # Screen recordings / extracted frames may contain personal data
 recordings/
 frames/
+
+# Firebase client config (not a secret, but project-specific)
+android/app/google-services.json
+firebase/node_modules/
+firebase/*.log
