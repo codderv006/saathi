@@ -210,6 +210,11 @@ class _AnnotationLayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = annotation.label?.of(language);
+    final h = annotation.highlight;
+    // Keep labels and markers inside the image near its edges.
+    final labelAbove = h.top + h.height > 0.8;
+    final labelRight = h.left + h.width / 2 > 0.6;
+    final markerInset = h.left < 0.05 || h.top < 0.05;
     return Positioned.fromRect(
       rect: rect,
       child: ExcludeSemantics(
@@ -228,14 +233,16 @@ class _AnnotationLayer extends StatelessWidget {
             children: [
               if (annotation.marker != null)
                 Positioned(
-                  left: -12,
-                  top: -12,
+                  left: markerInset ? 4 : -12,
+                  top: markerInset ? 4 : -12,
                   child: _Marker(number: annotation.marker!),
                 ),
               if (label != null)
                 Positioned(
-                  left: 0,
-                  top: rect.height + 6,
+                  left: labelRight ? null : 0,
+                  right: labelRight ? 0 : null,
+                  top: labelAbove ? null : rect.height + 6,
+                  bottom: labelAbove ? rect.height + 6 : null,
                   child: _Label(text: label),
                 ),
             ],

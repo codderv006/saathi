@@ -95,9 +95,7 @@ void main() {
       await openRideGuide(tester, RideApp.uber);
 
       expect(find.text('Open Uber'), findsOneWidget);
-      expect(find.text('Step 1 of 8'), findsOneWidget);
-      expect(find.text('Picture coming soon'), findsOneWidget);
-      expect(find.textContaining('Placeholder'), findsOneWidget);
+      expect(find.text('Step 1 of 9'), findsOneWidget);
       expect(
         app.store.stored!.workflowId,
         RideApp.uber.workflowId(fromInstall: false),
@@ -112,11 +110,13 @@ void main() {
       await pumpApp(tester, app);
       await openRideGuide(tester, RideApp.rapido, fromInstall: true);
       expect(find.text('Install Rapido'), findsOneWidget);
-      expect(find.text('Step 1 of 13'), findsOneWidget);
+      expect(find.text('Step 1 of 12'), findsOneWidget);
+      // No Play Store recording yet: labelled placeholder.
+      expect(find.text('Picture coming soon'), findsOneWidget);
       for (var i = 0; i < 3; i++) {
         await tapText(tester, "I've done this");
       }
-      expect(find.text('Enter the code from SMS'), findsOneWidget);
+      expect(find.text('Enter the code you receive'), findsOneWidget);
       expect(
         find.textContaining('Saathi will never ask for it'),
         findsOneWidget,
@@ -133,23 +133,23 @@ void main() {
     await openRideGuide(tester, RideApp.ola);
 
     await tapText(tester, "I've done this");
-    expect(find.text('Find pickup and destination'), findsOneWidget);
-    expect(find.text('Step 2 of 8'), findsOneWidget);
+    expect(find.text('Find where to enter your destination'), findsOneWidget);
+    expect(find.text('Step 2 of 9'), findsOneWidget);
 
     // Repeat and help never advance.
     await tapText(tester, 'Repeat');
-    expect(find.text('Step 2 of 8'), findsOneWidget);
+    expect(find.text('Step 2 of 9'), findsOneWidget);
     await tapText(tester, 'I need help');
     await tapText(tester, 'Explain it more simply');
     expect(find.text('In simple words'), findsOneWidget);
-    expect(find.text('Step 2 of 8'), findsOneWidget);
+    expect(find.text('Step 2 of 9'), findsOneWidget);
 
     // Back keeps the earlier confirmation in history.
     await tapText(tester, 'Back');
     expect(find.text('Open Ola'), findsOneWidget);
     expect(app.store.stored!.confirmedAt('open_app'), isNotNull);
 
-    for (var i = 0; i < 7; i++) {
+    for (var i = 0; i < 8; i++) {
       await tapText(tester, "I've done this");
     }
     expect(find.text('What happened?'), findsOneWidget);
@@ -205,13 +205,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(app.store.stored!.status, SessionStatus.paused);
-    expect(find.text('In progress: Ola · Step 2 of 8'), findsOneWidget);
+    expect(find.text('In progress: Ola · Step 2 of 9'), findsOneWidget);
 
     // Never resumes silently: the user is asked.
     await tapText(tester, 'Book a ride');
     expect(find.text('Continue where you left off?'), findsOneWidget);
     await tapText(tester, 'Continue');
-    expect(find.text('Find pickup and destination'), findsOneWidget);
+    expect(find.text('Find where to enter your destination'), findsOneWidget);
     expect(app.store.stored!.status, SessionStatus.active);
   });
 
@@ -231,7 +231,7 @@ void main() {
     await tapText(tester, 'Uber');
     await tapText(tester, "Yes, I'm already signed in");
     expect(find.text('Open Uber'), findsOneWidget);
-    expect(find.text('Step 1 of 8'), findsOneWidget);
+    expect(find.text('Step 1 of 9'), findsOneWidget);
     expect(app.store.stored!.id, isNot(oldId));
   });
 
@@ -258,7 +258,7 @@ void main() {
     final second = await TestApp.create(store: first.store);
     await tester.pumpWidget(const SizedBox());
     await pumpApp(tester, second);
-    expect(find.text('In progress: Ola · Step 3 of 8'), findsOneWidget);
+    expect(find.text('In progress: Ola · Step 3 of 9'), findsOneWidget);
   });
 
   group('voice', () {

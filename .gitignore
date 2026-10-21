@@ -61,3 +61,4 @@ frames/
 android/app/google-services.json
 firebase/node_modules/
 firebase/*.log
+frames_coarse/

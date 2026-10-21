@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:saathi_poc/features/guided_workflow/data/ride_workflow.dart';
 import 'package:saathi_poc/features/guided_workflow/data/workflow_registry.dart';
@@ -31,37 +33,86 @@ void main() {
   EngineResult run(WorkflowSession s, WorkflowCommand c) =>
       engine.apply(s, c, t0);
 
-  test('Ola, Uber and Rapido guides are registered and name their app', () {
+  test('each app has its recorded step order', () {
+    List<String> steps(RideApp app, bool fromInstall) => WorkflowRegistry.find(
+      app.workflowId(fromInstall: fromInstall),
+    )!.steps.map((s) => s.id).toList();
+    const booking = [
+      'find_locations',
+      'enter_destination',
+      'check_locations',
+      'review_rides',
+      'check_fare',
+      'decide_booking',
+    ];
+    expect(steps(RideApp.ola, true), [
+      'install_app',
+      'open_app',
+      'enter_phone',
+      'enter_otp',
+      'allow_location',
+      ...booking,
+      'confirm_pickup',
+      'confirm_outcome',
+    ]);
+    expect(steps(RideApp.uber, true), [
+      'install_app',
+      'open_app',
+      'allow_location',
+      'enter_phone',
+      'enter_otp',
+      'optional_setup',
+      ...booking,
+      'confirm_pickup',
+      'confirm_outcome',
+    ]);
+    expect(steps(RideApp.rapido, true), [
+      'install_app',
+      'open_app',
+      'enter_phone',
+      'enter_otp',
+      'allow_location',
+      ...booking,
+      'confirm_outcome',
+    ]);
     for (final app in RideApp.values) {
+      final signedIn = steps(app, false);
+      expect(signedIn.first, 'open_app');
+      expect(signedIn, isNot(contains('enter_otp')));
+      expect(signedIn.last, 'confirm_outcome');
       final def = WorkflowRegistry.find(app.workflowId(fromInstall: false))!;
       expect(RideApp.fromWorkflowId(def.id), app);
-      expect(def.steps.map((s) => s.id), ids, reason: 'same logical steps');
       expect(def.steps.first.instruction.of('en'), contains(app.displayName));
       expect(def.steps.first.instruction.of('mr'), contains(app.displayName));
-      expect(
-        def.steps.first.screenshot!.asset,
-        startsWith('assets/workflows/${app.name}/'),
-      );
     }
   });
 
-  test('fresh-install guides start at Play Store and protect the OTP', () {
-    for (final app in RideApp.values) {
-      final def = WorkflowRegistry.find(app.workflowId(fromInstall: true))!;
-      final stepIds = def.steps.map((s) => s.id).toList();
-      expect(stepIds.first, 'install_app');
-      expect(stepIds.sublist(0, 6), [
-        'install_app',
-        'open_app',
-        'enter_phone',
-        'enter_otp',
-        'profile_details',
-        'allow_location',
-      ]);
-      expect(stepIds.sublist(6), ids.sublist(1), reason: 'then booking');
-      expect(def.stepById('enter_otp')!.sensitivity, Sensitivity.secretCode);
-      expect(def.stepById('check_fare')!.sensitivity, Sensitivity.money);
-      expect(RideApp.fromWorkflowId(def.id), app);
+  test('every recorded screenshot exists; placeholders have no highlights', () {
+    for (final def in WorkflowRegistry.all) {
+      final app = RideApp.fromWorkflowId(def.id)!;
+      for (final step in def.steps) {
+        final shot = step.screenshot!;
+        expect(shot.asset, startsWith('assets/workflows/${app.name}/'));
+        if (hasRecordedScreenshot(app, step.id)) {
+          expect(
+            File(shot.asset).existsSync(),
+            isTrue,
+            reason: '${def.id} ${step.id}',
+          );
+        } else {
+          expect(shot.annotations, isEmpty, reason: '${def.id} ${step.id}');
+        }
+      }
+    }
+  });
+
+  test('OTP steps are secret, money steps are flagged', () {
+    final def = WorkflowRegistry.find(
+      RideApp.uber.workflowId(fromInstall: true),
+    )!;
+    expect(def.stepById('enter_otp')!.sensitivity, Sensitivity.secretCode);
+    for (final id in ['check_fare', 'decide_booking', 'confirm_pickup']) {
+      expect(def.stepById(id)!.sensitivity, Sensitivity.money, reason: id);
     }
   });
 
