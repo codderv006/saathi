@@ -132,5 +132,6 @@
   "allDone": "झाले!",
   "topicDoneBody": "तुम्ही हे मार्गदर्शन पूर्ण केले.",
   "guidesFor": "{app} साठी मार्गदर्शक",
-  "startGuide": "सुरू करा"
+  "startGuide": "सुरू करा",
+  "agentGreeting": "नमस्कार! मी साथी. Ola, Uber, Rapido, Google Pay, PhonePe आणि WhatsApp वापरायला मी मदत करते. सांगा, काय हवे आहे?"
 }

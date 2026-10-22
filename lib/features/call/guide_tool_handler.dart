@@ -25,6 +25,12 @@ class GuideToolHandler {
   String? Function()? userId;
 
   Future<Map<String, Object?>> handle(Map<String, Object?> event) async {
+    // The agent reports the language it is speaking (it auto-switches when the
+    // user switches); the screen follows so text and voice always match.
+    final spoken = event['language'];
+    if (spoken is String && spoken != settings.language) {
+      await settings.setLanguage(spoken);
+    }
     final action = event['action'];
     final stepId = event['step_id'] as String?;
     switch (action) {
@@ -150,7 +156,7 @@ class GuideToolHandler {
             'No guide is open. If the question matches a topic, call show_topic.',
       };
     }
-    final language = session.language;
+    final language = settings.language;
     return {
       'ok': true,
       'active_guide': true,

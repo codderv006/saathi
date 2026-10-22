@@ -24,8 +24,14 @@ const headers = { Authorization: `Bearer ${BOLNA_API_KEY}`, "Content-Type": "app
 const START = "[SAATHI SCREEN GUIDE]";
 const END = "[/SAATHI SCREEN GUIDE]";
 const MIN_CALL_SECONDS = 900;
-const WELCOME =
-  "Namaskar! I'm Saathi. I can help you use Ola, Uber, Rapido, Google Pay, PhonePe and WhatsApp. What do you need?";
+// The app sends the greeting in the language selected on screen (user_data), so the
+// call opens in that language. Bolna fills {variables} in the welcome message.
+const WELCOME = "{saathi_welcome}";
+// Spoken when the agent auto-switches language mid-call (the old ones had a blank name).
+const HANDOFF = {
+  en: "Sure, I'll continue in English.",
+  mr: "ठीक आहे, आता मराठीत बोलूया.",
+};
 
 // Topic list for the prompt, generated from the app's own catalog.
 const catalog = JSON.parse(
@@ -53,6 +59,7 @@ The user sees the Saathi app on their phone. It shows a picture for each step. K
   { variable: "saathi_device" },
   `.
 - When a question matches a topic below, call action "show_topic" with app and topic, then explain only the current step from the answer. For book_ride also pass new_user ("yes" if they are new to the app; ask if you don't know).
+- Always pass language = the language you are speaking right now ("en" or "mr"). The screen switches to match. Reply in the language the user speaks; if they switch between English and Marathi, switch with them.
 - Every answer tells you step_id, step_title and instruction. Explain that step briefly, then wait.
 - When the user says they finished the step ("done", "ho", "zala", "kela"), call "step_done" with that step_id, then explain the next step from the answer. The screen moves by itself.
 - If they want to go back, call "go_back" with the current step_id. If unsure where they are, call "current_step". If an answer has ok false, follow its message and its step.
@@ -85,6 +92,11 @@ const toolDef = {
       new_user: { type: "string", enum: ["yes", "no"], description: "For book_ride." },
       step_id: { type: "string", description: "The current step_id from the last answer." },
       booked: { type: "string", enum: ["yes", "no"], description: "For outcome." },
+      language: {
+        type: "string",
+        enum: ["en", "mr"],
+        description: "The language you are speaking right now.",
+      },
     },
     required: ["saathi_device", "action"],
   },
@@ -160,6 +172,21 @@ const apiTools = task.tools_config.api_tools ?? { tools: [], tools_params: {} };
 apiTools.tools = [...(apiTools.tools ?? []).filter((t) => t.name !== "saathi_guide"), toolDef];
 apiTools.tools_params = { ...(apiTools.tools_params ?? {}), saathi_guide: toolParams };
 task.tools_config.api_tools = apiTools;
+const langs = task.tools_config.multilingual_config?.languages ?? {};
+for (const [code, text] of Object.entries(HANDOFF)) {
+  if (langs[code]) {
+    langs[code].handoff_message = text;
+    // Keep each per-language prompt's Saathi block identical to the main one.
+    if (typeof langs[code].system_prompt === "string") {
+      langs[code].system_prompt =
+        `${stripBlock(langs[code].system_prompt)}
+
+${START}
+${plainRules()}
+${END}`;
+    }
+  }
+}
 const oldTerminate = task.task_config?.call_terminate;
 if (task.task_config && (oldTerminate ?? 0) < MIN_CALL_SECONDS) {
   task.task_config.call_terminate = MIN_CALL_SECONDS;

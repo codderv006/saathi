@@ -449,4 +449,8 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get startGuide => 'सुरू करा';
+
+  @override
+  String get agentGreeting =>
+      'नमस्कार! मी साथी. Ola, Uber, Rapido, Google Pay, PhonePe आणि WhatsApp वापरायला मी मदत करते. सांगा, काय हवे आहे?';
 }

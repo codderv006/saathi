@@ -101,7 +101,11 @@ class _CallScreenState extends State<CallScreen> {
 
   Map<String, String> _callContext() {
     final services = AppScope.of(context);
-    final device = {'saathi_device': services.settings.installationId};
+    final device = {
+      'saathi_device': services.settings.installationId,
+      // Spoken first, so the call opens in the language selected on screen.
+      'saathi_welcome': AppLocalizations.of(context).agentGreeting,
+    };
     final guide = services.guide;
     final session = guide.session;
     final step = guide.currentStep;
@@ -392,8 +396,6 @@ class _HeroView extends StatelessWidget {
                                 ),
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      const _AppBadges(),
                     ],
                   ),
                   Padding(
@@ -421,54 +423,6 @@ class _HeroView extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-/// The six supported apps, as small brand-coloured badges: tells the user what
-/// Saathi can help with at a glance.
-class _AppBadges extends StatelessWidget {
-  const _AppBadges();
-
-  @override
-  Widget build(BuildContext context) {
-    final apps = AppScope.of(context).catalog.apps.values.toList();
-    return ExcludeSemantics(
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        spacing: 10,
-        runSpacing: 8,
-        children: [
-          for (final a in apps)
-            Tooltip(
-              message: a.name,
-              child: Container(
-                width: 34,
-                height: 34,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Color(a.color),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                  boxShadow: const [
-                    BoxShadow(color: Color(0x14000000), blurRadius: 6),
-                  ],
-                ),
-                child: Text(
-                  a.name.substring(0, 1),
-                  textScaler: TextScaler.noScaling,
-                  style: TextStyle(
-                    color: Color(a.color).computeLuminance() > 0.5
-                        ? AppColors.textPrimary
-                        : Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 }

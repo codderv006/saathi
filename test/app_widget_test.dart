@@ -56,10 +56,37 @@ void main() {
 
     await tapOrb(tester);
     expect(app.voice.starts, 1);
-    expect(app.voice.lastContext!.keys, ['saathi_device']);
+    expect(app.voice.lastContext!.keys, ['saathi_device', 'saathi_welcome']);
+    expect(app.voice.lastContext!['saathi_welcome'], startsWith('Hello!'));
     expect(find.text('Listening'), findsOneWidget);
     expect(find.text('Ask me anything about these apps'), findsOneWidget);
     expect(find.byTooltip('End call'), findsOneWidget);
+  });
+
+  testWidgets('call opens in the selected language (Marathi greeting)', (
+    tester,
+  ) async {
+    final app = await TestApp.create(language: 'mr');
+    await pumpApp(tester, app);
+    await tapOrb(tester);
+    expect(app.voice.lastContext!['saathi_welcome'], startsWith('नमस्कार'));
+  });
+
+  testWidgets('screen switches to the language the agent is speaking', (
+    tester,
+  ) async {
+    final app = await TestApp.create(); // English selected
+    await pumpApp(tester, app);
+    final answer = await agentFor(app).handle({
+      'action': 'show_topic',
+      'app': 'whatsapp',
+      'topic': 'post_status',
+      'language': 'mr', // user spoke Marathi, agent switched
+    });
+    await tester.pumpAndSettle();
+    expect(app.services.settings.language, 'mr');
+    expect(answer['step_title'], 'Updates उघडा');
+    expect(find.text('Updates उघडा'), findsOneWidget);
   });
 
   testWidgets('agent opens a WhatsApp guide; screen follows with no taps', (

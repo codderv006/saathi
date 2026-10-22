@@ -895,6 +895,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start'**
   String get startGuide;
+
+  /// No description provided for @agentGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello! I\'m Saathi. I can help you with Ola, Uber, Rapido, Google Pay, PhonePe and WhatsApp. What do you need?'**
+  String get agentGreeting;
 }
 
 class _AppLocalizationsDelegate

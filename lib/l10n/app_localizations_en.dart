@@ -445,4 +445,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startGuide => 'Start';
+
+  @override
+  String get agentGreeting =>
+      'Hello! I\'m Saathi. I can help you with Ola, Uber, Rapido, Google Pay, PhonePe and WhatsApp. What do you need?';
 }

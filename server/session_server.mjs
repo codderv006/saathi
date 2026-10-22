@@ -51,7 +51,13 @@ const BOLNA_MINT_URL = "https://api.bolna.ai/web-call/session";
 const LANGUAGES = new Set(["en", "mr"]);
 // Context the app may pass to the agent prompt as {{variables}}. Informational only:
 // the app's workflow engine, not the agent, decides the current step.
-const USER_DATA_KEYS = ["saathi_device", "saathi_task", "saathi_step", "saathi_instruction"];
+const USER_DATA_KEYS = [
+  "saathi_device",
+  "saathi_welcome",
+  "saathi_task",
+  "saathi_step",
+  "saathi_instruction",
+];
 const TOOL_ACTIONS = new Set([
   "show_topic",
   "start_guide",
@@ -148,6 +154,7 @@ async function handleTool(req, res) {
     action,
     app: typeof input.app === "string" ? input.app.toLowerCase() : null,
     topic: typeof input.topic === "string" ? input.topic.toLowerCase() : null,
+    language: input.language === "mr" || input.language === "en" ? input.language : null,
     new_user: input.new_user === true || input.new_user === "yes" || input.new_user === "true",
     step_id: typeof input.step_id === "string" ? input.step_id : null,
     booked: input.booked === true || input.booked === "yes" || input.booked === "true",
