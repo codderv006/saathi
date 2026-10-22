@@ -1,0 +1,993 @@
+{
+  "apps": {
+    "ola": { "name": "Ola", "category": "commute", "color": "#1C1C1C", "accent": "#C6DA2E" },
+    "uber": { "name": "Uber", "category": "commute", "color": "#000000", "accent": "#276EF1" },
+    "rapido": { "name": "Rapido", "category": "commute", "color": "#F9C935", "accent": "#1C1C1C" },
+    "gpay": { "name": "Google Pay", "category": "payments", "color": "#1A73E8", "accent": "#34A853" },
+    "phonepe": { "name": "PhonePe", "category": "payments", "color": "#5F259F", "accent": "#A970FF" },
+    "whatsapp": { "name": "WhatsApp", "category": "social", "color": "#25D366", "accent": "#075E54" }
+  },
+  "categories": {
+    "commute": { "en": "Rides", "mr": "प्रवास" },
+    "payments": { "en": "Payments", "mr": "पेमेंट" },
+    "social": { "en": "Messages", "mr": "मेसेज" }
+  },
+  "shared_steps": {
+    "open_app": {
+      "title": { "en": "Open {app}", "mr": "{app} उघडा" },
+      "text": {
+        "en": "Find the {app} icon on your phone and tap it once.",
+        "mr": "फोनवर {app} चे चिन्ह शोधा आणि त्यावर एकदा दाबा."
+      },
+      "visual": { "kind": "home_icon" }
+    },
+    "open_ride": {
+      "title": { "en": "Open your ride", "mr": "तुमची राइड उघडा" },
+      "text": {
+        "en": "Open {app}. Your booked ride shows on the main screen as a card.",
+        "mr": "{app} उघडा. बुक केलेली राइड मुख्य स्क्रीनवर एका कार्डमध्ये दिसेल."
+      },
+      "visual": { "kind": "ride_card" }
+    },
+    "open_chat": {
+      "title": { "en": "Open the chat", "mr": "चॅट उघडा" },
+      "text": {
+        "en": "Open WhatsApp and tap the person or group you want.",
+        "mr": "WhatsApp उघडा आणि हवी असलेली व्यक्ती किंवा ग्रुपवर दाबा."
+      },
+      "visual": { "kind": "list", "focus": "first" }
+    },
+    "enter_pin": {
+      "title": { "en": "Enter your UPI PIN", "mr": "तुमचा UPI PIN टाका" },
+      "text": {
+        "en": "Type your UPI PIN only inside {app}. Never tell it to anyone, not even Saathi.",
+        "mr": "तुमचा UPI PIN फक्त {app} मध्येच टाका. तो कोणालाही सांगू नका, साथीलाही नाही."
+      },
+      "visual": { "kind": "keypad", "focus": "pin" },
+      "sensitive": "secret"
+    },
+    "payment_done": {
+      "title": { "en": "See the green tick", "mr": "हिरवी खूण पाहा" },
+      "text": {
+        "en": "A green tick or 'Payment successful' means the money has gone.",
+        "mr": "हिरवी खूण किंवा 'Payment successful' दिसले, म्हणजे पैसे गेले."
+      },
+      "visual": { "kind": "receipt", "focus": "success" }
+    }
+  },
+  "topics": [
+    {
+      "id": "book_ride",
+      "apps": ["ola", "uber", "rapido"],
+      "builtin": true,
+      "title": { "en": "Book a ride", "mr": "राइड बुक करा" },
+      "about": "book a cab, auto or bike ride, from sign-up to booking"
+    },
+    {
+      "id": "cancel_ride",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "Cancel a ride", "mr": "राइड रद्द करा" },
+      "about": "cancel a booked ride, cancellation fee",
+      "steps": [
+        { "ref": "open_ride" },
+        {
+          "id": "find_cancel",
+          "title": { "en": "Find Cancel", "mr": "Cancel शोधा" },
+          "text": {
+            "en": "Swipe the ride card up or tap ride details. Look for 'Cancel ride'.",
+            "mr": "राइडचे कार्ड वर सरकवा किंवा राइडच्या माहितीवर दाबा. 'Cancel ride' शोधा."
+          },
+          "visual": { "kind": "ride_card", "focus": "cancel" }
+        },
+        {
+          "id": "choose_reason",
+          "title": { "en": "Pick a reason", "mr": "कारण निवडा" },
+          "text": {
+            "en": "{app} asks why you are cancelling. Pick any reason.",
+            "mr": "{app} रद्द करण्याचे कारण विचारेल. कोणतेही एक कारण निवडा."
+          },
+          "visual": { "kind": "list", "focus": "second" }
+        },
+        {
+          "id": "confirm_cancel",
+          "title": { "en": "Confirm", "mr": "पक्के करा" },
+          "text": {
+            "en": "Tap confirm. A small fee may apply if the driver is already on the way.",
+            "mr": "Confirm वर दाबा. ड्रायव्हर आधीच निघाला असेल, तर थोडे शुल्क लागू शकते."
+          },
+          "visual": { "kind": "button" },
+          "sensitive": "money"
+        }
+      ]
+    },
+    {
+      "id": "vehicle_number",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "Find the vehicle number", "mr": "गाडीचा नंबर शोधा" },
+      "about": "number plate of the booked cab/auto/bike, check before boarding",
+      "steps": [
+        { "ref": "open_ride" },
+        {
+          "id": "read_plate",
+          "title": { "en": "Read the number", "mr": "नंबर वाचा" },
+          "text": {
+            "en": "Near the driver's photo you will see the vehicle number, like MH 15 AB 1234.",
+            "mr": "ड्रायव्हरच्या फोटोजवळ गाडीचा नंबर दिसेल, उदा. MH 15 AB 1234."
+          },
+          "visual": { "kind": "ride_card", "focus": "plate" }
+        },
+        {
+          "id": "match_plate",
+          "title": { "en": "Match before you sit", "mr": "बसण्याआधी जुळवा" },
+          "text": {
+            "en": "When the vehicle comes, check its number plate matches. Never sit in a different vehicle.",
+            "mr": "गाडी आल्यावर तिची नंबर प्लेट जुळते का ते तपासा. वेगळ्या गाडीत कधीही बसू नका."
+          },
+          "visual": { "kind": "shield", "focus": "plate" }
+        }
+      ]
+    },
+    {
+      "id": "contact_driver",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "Call or message the driver", "mr": "ड्रायव्हरला कॉल किंवा मेसेज करा" },
+      "about": "driver phone number, call driver, chat with driver",
+      "steps": [
+        { "ref": "open_ride" },
+        {
+          "id": "tap_call",
+          "title": { "en": "Tap the phone button", "mr": "फोनच्या बटणावर दाबा" },
+          "text": {
+            "en": "On the ride card, tap the phone icon to call the driver. Your real number stays hidden.",
+            "mr": "राइड कार्डवरील फोनच्या चिन्हावर दाबा. तुमचा खरा नंबर लपवलेला राहतो."
+          },
+          "visual": { "kind": "ride_card", "focus": "call" }
+        },
+        {
+          "id": "send_message",
+          "title": { "en": "Or send a message", "mr": "किंवा मेसेज पाठवा" },
+          "text": {
+            "en": "Tap the message box on the ride card and type, like 'I am at the gate'.",
+            "mr": "राइड कार्डवरील मेसेजच्या जागेवर दाबा आणि लिहा, उदा. 'मी गेटवर आहे'."
+          },
+          "visual": { "kind": "ride_card", "focus": "chat" }
+        }
+      ]
+    },
+    {
+      "id": "check_fare",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "Check the fare", "mr": "भाडे तपासा" },
+      "about": "price before booking, fare in trip details, final amount",
+      "steps": [
+        {
+          "id": "fare_before",
+          "title": { "en": "Before booking", "mr": "बुक करण्याआधी" },
+          "text": {
+            "en": "After you enter where to go, the price shows next to each ride type.",
+            "mr": "कुठे जायचे ते लिहिल्यावर प्रत्येक गाडीच्या प्रकारासमोर किंमत दिसते."
+          },
+          "visual": { "kind": "list", "focus": "price" }
+        },
+        {
+          "id": "fare_details",
+          "title": { "en": "After booking", "mr": "बुक केल्यानंतर" },
+          "text": {
+            "en": "Open the ride card and look for the total fare or trip details.",
+            "mr": "राइड कार्ड उघडा आणि एकूण भाडे किंवा trip details पाहा."
+          },
+          "visual": { "kind": "ride_card", "focus": "fare" }
+        },
+        {
+          "id": "fare_final",
+          "title": { "en": "At the end", "mr": "शेवटी" },
+          "text": {
+            "en": "When the ride ends, {app} shows the final amount. Pay only that.",
+            "mr": "राइड संपल्यावर {app} अंतिम रक्कम दाखवते. फक्त तेवढेच पैसे द्या."
+          },
+          "visual": { "kind": "receipt", "focus": "amount" },
+          "sensitive": "money"
+        }
+      ]
+    },
+    {
+      "id": "driver_eta",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "When will the driver come?", "mr": "ड्रायव्हर कधी येईल?" },
+      "about": "ETA, minutes away, track vehicle on map",
+      "steps": [
+        { "ref": "open_ride" },
+        {
+          "id": "read_eta",
+          "title": { "en": "See the minutes", "mr": "मिनिटे पाहा" },
+          "text": {
+            "en": "The ride card shows how far the driver is, like '3 mins away'.",
+            "mr": "ड्रायव्हर किती दूर आहे ते राइड कार्डवर दिसते, उदा. '3 mins away'."
+          },
+          "visual": { "kind": "ride_card", "focus": "eta" }
+        },
+        {
+          "id": "watch_map",
+          "title": { "en": "Watch the map", "mr": "नकाशा पाहा" },
+          "text": {
+            "en": "The small vehicle on the map moves towards your pickup point.",
+            "mr": "नकाशावरची छोटी गाडी तुमच्या पिकअपच्या ठिकाणाकडे येताना दिसते."
+          },
+          "visual": { "kind": "map", "focus": "car" }
+        }
+      ]
+    },
+    {
+      "id": "ride_otp",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "Ride OTP or PIN", "mr": "राइड OTP किंवा PIN" },
+      "about": "4-digit ride code shown after booking, tell driver at pickup",
+      "steps": [
+        {
+          "id": "find_ride_otp",
+          "title": { "en": "Find the ride code", "mr": "राइड कोड शोधा" },
+          "text": {
+            "en": "After booking, {app} shows a 4-digit code (OTP or PIN) on the ride card.",
+            "mr": "बुक केल्यानंतर {app} राइड कार्डवर 4 अंकी कोड (OTP किंवा PIN) दाखवते."
+          },
+          "visual": { "kind": "ride_card", "focus": "otp" }
+        },
+        {
+          "id": "tell_driver",
+          "title": { "en": "Tell it only when you sit", "mr": "बसल्यावरच सांगा" },
+          "text": {
+            "en": "Sit in the right vehicle first, then tell this code to the driver. The ride starts after that.",
+            "mr": "आधी योग्य गाडीत बसा, मग हा कोड ड्रायव्हरला सांगा. त्यानंतर राइड सुरू होते."
+          },
+          "visual": { "kind": "ride_card", "focus": "otp" }
+        },
+        {
+          "id": "never_share_ride_otp",
+          "title": { "en": "Never share it on the phone", "mr": "फोनवर कधीही सांगू नका" },
+          "text": {
+            "en": "Never tell this code to anyone on a call or message.",
+            "mr": "हा कोड कॉल किंवा मेसेजवर कोणालाही सांगू नका."
+          },
+          "visual": { "kind": "shield", "focus": "lock" },
+          "sensitive": "secret"
+        }
+      ]
+    },
+    {
+      "id": "pay_ride",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "Pay for the ride", "mr": "राइडचे पैसे द्या" },
+      "about": "cash, UPI, payment method, paying driver",
+      "steps": [
+        {
+          "id": "choose_method",
+          "title": { "en": "Choose how to pay", "mr": "पैसे कसे द्यायचे ते निवडा" },
+          "text": {
+            "en": "Before booking, tap the payment option at the bottom (Cash or UPI) and pick one.",
+            "mr": "बुक करण्याआधी खालच्या पेमेंट पर्यायावर (Cash किंवा UPI) दाबा आणि एक निवडा."
+          },
+          "visual": { "kind": "list", "focus": "bottom" }
+        },
+        {
+          "id": "pay_end",
+          "title": { "en": "Pay at the end", "mr": "शेवटी पैसे द्या" },
+          "text": {
+            "en": "When the ride ends, pay the amount {app} shows: cash to the driver, or scan the driver's QR.",
+            "mr": "राइड संपल्यावर {app} दाखवते तेवढे पैसे द्या: ड्रायव्हरला रोख, किंवा ड्रायव्हरचा QR स्कॅन करून."
+          },
+          "visual": { "kind": "receipt", "focus": "amount" },
+          "sensitive": "money"
+        },
+        {
+          "id": "check_paid",
+          "title": { "en": "Check it is paid", "mr": "पैसे गेले का तपासा" },
+          "text": {
+            "en": "{app} shows 'Paid' or sends a receipt.",
+            "mr": "{app} 'Paid' दाखवते किंवा पावती पाठवते."
+          },
+          "visual": { "kind": "receipt", "focus": "success" }
+        }
+      ]
+    },
+    {
+      "id": "ride_safety",
+      "apps": ["ola", "uber", "rapido"],
+      "title": { "en": "Share your ride and stay safe", "mr": "राइड शेअर करा, सुरक्षित राहा" },
+      "about": "share trip with family, SOS emergency button",
+      "steps": [
+        { "ref": "open_ride" },
+        {
+          "id": "share_trip",
+          "title": { "en": "Share the trip", "mr": "प्रवास शेअर करा" },
+          "text": {
+            "en": "Tap 'Share ride' and send it to a family member on WhatsApp. They can see where you are.",
+            "mr": "'Share ride' वर दाबा आणि WhatsApp वर घरच्यांना पाठवा. तुम्ही कुठे आहात ते त्यांना दिसेल."
+          },
+          "visual": { "kind": "ride_card", "focus": "share" }
+        },
+        {
+          "id": "sos",
+          "title": { "en": "Emergency button", "mr": "आपत्कालीन बटण" },
+          "text": {
+            "en": "In an emergency, tap SOS or Safety. It can alert the police and your contacts.",
+            "mr": "आपत्कालीन वेळी SOS किंवा Safety वर दाबा. ते पोलीस आणि तुमच्या लोकांना कळवू शकते."
+          },
+          "visual": { "kind": "shield", "focus": "sos" }
+        }
+      ]
+    },
+    {
+      "id": "setup_upi",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "Link your bank account", "mr": "बँक खाते जोडा" },
+      "about": "add bank account, set UPI PIN with debit card, first time setup",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "add_bank",
+          "title": { "en": "Add bank account", "mr": "बँक खाते जोडा" },
+          "text": {
+            "en": "Tap your photo at the top, then 'Bank account' or 'Add bank account'.",
+            "mr": "वर तुमच्या फोटोवर दाबा, मग 'Bank account' किंवा 'Add bank account' वर दाबा."
+          },
+          "visual": { "kind": "menu", "focus": "bank" }
+        },
+        {
+          "id": "pick_bank",
+          "title": { "en": "Choose your bank", "mr": "तुमची बँक निवडा" },
+          "text": {
+            "en": "Search and pick your bank. The phone sends an SMS to check it, so use the SIM linked to your bank.",
+            "mr": "तुमची बँक शोधा आणि निवडा. पडताळणीसाठी फोन SMS पाठवतो, म्हणून बँकेशी जोडलेले SIM वापरा."
+          },
+          "visual": { "kind": "bank", "focus": "first" }
+        },
+        {
+          "id": "set_pin",
+          "title": { "en": "Set your UPI PIN", "mr": "UPI PIN तयार करा" },
+          "text": {
+            "en": "Enter the last 6 digits of your debit card and its expiry, then the OTP, then make a 4 or 6 digit UPI PIN.",
+            "mr": "डेबिट कार्डचे शेवटचे 6 अंक आणि expiry टाका, मग OTP, मग 4 किंवा 6 अंकी UPI PIN तयार करा."
+          },
+          "visual": { "kind": "keypad", "focus": "pin" },
+          "sensitive": "secret"
+        },
+        {
+          "id": "pin_secret",
+          "title": { "en": "Keep the PIN secret", "mr": "PIN गुप्त ठेवा" },
+          "text": {
+            "en": "This PIN is only for paying. No bank or app ever asks for it on a call.",
+            "mr": "हा PIN फक्त पैसे देण्यासाठी आहे. कोणतीही बँक किंवा ॲप तो कॉलवर विचारत नाही."
+          },
+          "visual": { "kind": "shield", "focus": "lock" },
+          "sensitive": "secret"
+        }
+      ]
+    },
+    {
+      "id": "pay_phone",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "Pay to a phone number", "mr": "फोन नंबरवर पैसे पाठवा" },
+      "about": "send money to a contact or mobile number",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "find_person",
+          "title": { "en": "Find the person", "mr": "व्यक्ती शोधा" },
+          "text": {
+            "en": "Tap 'Pay phone number' or the search bar, and type their number or name.",
+            "mr": "'Pay phone number' किंवा शोधण्याच्या जागेवर दाबा, आणि त्यांचा नंबर किंवा नाव लिहा."
+          },
+          "visual": { "kind": "search" }
+        },
+        {
+          "id": "check_name",
+          "title": { "en": "Check the name", "mr": "नाव तपासा" },
+          "text": {
+            "en": "Make sure the name shown is the right person before you go on.",
+            "mr": "पुढे जाण्याआधी दिसणारे नाव बरोबर व्यक्तीचे आहे ना, ते तपासा."
+          },
+          "visual": { "kind": "list", "focus": "first" }
+        },
+        {
+          "id": "enter_amount",
+          "title": { "en": "Type the amount", "mr": "रक्कम लिहा" },
+          "text": {
+            "en": "Type how much to send, then tap Pay.",
+            "mr": "किती पैसे पाठवायचे ते लिहा, मग Pay वर दाबा."
+          },
+          "visual": { "kind": "keypad", "focus": "amount" },
+          "sensitive": "money"
+        },
+        { "ref": "enter_pin" },
+        { "ref": "payment_done" }
+      ]
+    },
+    {
+      "id": "scan_qr",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "Pay by scanning a QR code", "mr": "QR कोड स्कॅन करून पैसे द्या" },
+      "about": "scan shop QR code with camera and pay",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "tap_scan",
+          "title": { "en": "Tap Scan QR", "mr": "Scan QR वर दाबा" },
+          "text": {
+            "en": "Tap 'Scan any QR' and point the camera at the QR code. Hold steady.",
+            "mr": "'Scan any QR' वर दाबा आणि कॅमेरा QR कोडकडे धरा. फोन स्थिर ठेवा."
+          },
+          "visual": { "kind": "qr" }
+        },
+        {
+          "id": "check_shop",
+          "title": { "en": "Check the shop name", "mr": "दुकानाचे नाव तपासा" },
+          "text": {
+            "en": "Check the name shown is the shop you are paying.",
+            "mr": "दिसणारे नाव तुम्ही पैसे देत असलेल्या दुकानाचेच आहे ना, ते तपासा."
+          },
+          "visual": { "kind": "list", "focus": "first" }
+        },
+        {
+          "id": "enter_amount",
+          "title": { "en": "Type the amount", "mr": "रक्कम लिहा" },
+          "text": {
+            "en": "Type the amount and tap Pay.",
+            "mr": "रक्कम लिहा आणि Pay वर दाबा."
+          },
+          "visual": { "kind": "keypad", "focus": "amount" },
+          "sensitive": "money"
+        },
+        { "ref": "enter_pin" },
+        { "ref": "payment_done" }
+      ]
+    },
+    {
+      "id": "check_balance",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "Check bank balance", "mr": "बँक बॅलन्स तपासा" },
+      "about": "see how much money is in the linked bank account",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "tap_balance",
+          "title": { "en": "Tap Check balance", "mr": "Check balance वर दाबा" },
+          "text": {
+            "en": "Scroll down on the home screen and tap 'Check bank balance', then choose your bank.",
+            "mr": "मुख्य स्क्रीनवर खाली जा आणि 'Check bank balance' वर दाबा, मग तुमची बँक निवडा."
+          },
+          "visual": { "kind": "menu", "focus": "balance" }
+        },
+        { "ref": "enter_pin" },
+        {
+          "id": "see_balance",
+          "title": { "en": "See your balance", "mr": "बॅलन्स पाहा" },
+          "text": {
+            "en": "Your balance shows on the screen.",
+            "mr": "तुमचा बॅलन्स स्क्रीनवर दिसेल."
+          },
+          "visual": { "kind": "receipt", "focus": "amount" }
+        }
+      ]
+    },
+    {
+      "id": "add_card",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "Add a credit or RuPay card", "mr": "क्रेडिट किंवा RuPay कार्ड जोडा" },
+      "about": "link a credit card or RuPay card for UPI payments",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "open_cards",
+          "title": { "en": "Open cards", "mr": "कार्ड उघडा" },
+          "text": {
+            "en": "Tap your photo at the top, then 'Payment methods' or 'Cards', then 'Add card'.",
+            "mr": "वर तुमच्या फोटोवर दाबा, मग 'Payment methods' किंवा 'Cards', मग 'Add card' वर दाबा."
+          },
+          "visual": { "kind": "menu", "focus": "card" }
+        },
+        {
+          "id": "card_details",
+          "title": { "en": "Type card details", "mr": "कार्डची माहिती लिहा" },
+          "text": {
+            "en": "Type the card number, expiry date and the 3-digit CVV from the back.",
+            "mr": "कार्ड नंबर, expiry तारीख आणि मागचा 3 अंकी CVV लिहा."
+          },
+          "visual": { "kind": "bank", "focus": "card" },
+          "sensitive": "secret"
+        },
+        {
+          "id": "card_otp",
+          "title": { "en": "Enter the bank OTP", "mr": "बँकेचा OTP टाका" },
+          "text": {
+            "en": "Your bank sends an OTP by SMS. Type it only in {app}.",
+            "mr": "तुमची बँक SMS ने OTP पाठवते. तो फक्त {app} मध्येच टाका."
+          },
+          "visual": { "kind": "otp" },
+          "sensitive": "secret"
+        }
+      ]
+    },
+    {
+      "id": "receive_money",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "Receive money", "mr": "पैसे मिळवा" },
+      "about": "show your QR or UPI ID so others can pay you; no PIN needed",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "show_qr",
+          "title": { "en": "Show your QR code", "mr": "तुमचा QR कोड दाखवा" },
+          "text": {
+            "en": "Tap your photo at the top to see your QR code and UPI ID. Others scan it to pay you.",
+            "mr": "तुमचा QR कोड आणि UPI ID पाहण्यासाठी वर तुमच्या फोटोवर दाबा. इतर लोक तो स्कॅन करून पैसे देतात."
+          },
+          "visual": { "kind": "qr", "focus": "mine" }
+        },
+        {
+          "id": "no_pin_to_receive",
+          "title": { "en": "No PIN to receive", "mr": "पैसे मिळवायला PIN नाही" },
+          "text": {
+            "en": "You never enter a PIN to receive money. If someone asks you to, it is a fraud.",
+            "mr": "पैसे मिळवण्यासाठी कधीही PIN टाकावा लागत नाही. कोणी तसे सांगितले, तर ती फसवणूक आहे."
+          },
+          "visual": { "kind": "shield", "focus": "lock" },
+          "sensitive": "secret"
+        }
+      ]
+    },
+    {
+      "id": "history",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "See past payments", "mr": "आधीचे व्यवहार पाहा" },
+      "about": "transaction history, check if a payment went",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "open_history",
+          "title": { "en": "Open history", "mr": "History उघडा" },
+          "text": {
+            "en": "Tap 'History' or 'See transaction history'.",
+            "mr": "'History' किंवा 'See transaction history' वर दाबा."
+          },
+          "visual": { "kind": "menu", "focus": "history" }
+        },
+        {
+          "id": "tap_payment",
+          "title": { "en": "Tap a payment", "mr": "एका व्यवहारावर दाबा" },
+          "text": {
+            "en": "Tap any payment to see who it went to, the amount and whether it succeeded.",
+            "mr": "कोणाला, किती पैसे गेले आणि व्यवहार यशस्वी झाला का, ते पाहण्यासाठी व्यवहारावर दाबा."
+          },
+          "visual": { "kind": "receipt", "focus": "success" }
+        }
+      ]
+    },
+    {
+      "id": "payment_failed",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "Payment failed or money stuck", "mr": "पेमेंट अयशस्वी किंवा पैसे अडकले" },
+      "about": "money deducted but failed, pending, refund, complaint",
+      "steps": [
+        {
+          "id": "check_status",
+          "title": { "en": "Check the status", "mr": "स्थिती तपासा" },
+          "text": {
+            "en": "Open history and tap the payment. It says Successful, Pending or Failed.",
+            "mr": "History उघडा आणि त्या व्यवहारावर दाबा. Successful, Pending किंवा Failed दिसेल."
+          },
+          "visual": { "kind": "receipt", "focus": "pending" }
+        },
+        {
+          "id": "wait_refund",
+          "title": { "en": "Wait for the refund", "mr": "पैसे परत येण्याची वाट पाहा" },
+          "text": {
+            "en": "If money was cut but the payment failed, it usually comes back to your bank in 3 to 5 days.",
+            "mr": "पैसे कापले पण पेमेंट अयशस्वी झाले, तर ते सहसा 3 ते 5 दिवसांत बँकेत परत येतात."
+          },
+          "visual": { "kind": "bank", "focus": "refund" }
+        },
+        {
+          "id": "get_help",
+          "title": { "en": "Ask for help in the app", "mr": "ॲपमध्ये मदत मागा" },
+          "text": {
+            "en": "Inside that payment, tap 'Get help' or 'Help' to raise a complaint. Never call numbers from Google search.",
+            "mr": "त्या व्यवहारात 'Get help' किंवा 'Help' वर दाबून तक्रार करा. Google वर सापडलेल्या नंबरवर कधीही कॉल करू नका."
+          },
+          "visual": { "kind": "menu", "focus": "help" }
+        }
+      ]
+    },
+    {
+      "id": "upi_safety",
+      "apps": ["gpay", "phonepe"],
+      "title": { "en": "UPI PIN and OTP safety", "mr": "UPI PIN आणि OTP सुरक्षा" },
+      "about": "fraud, scams, never share PIN or OTP",
+      "steps": [
+        {
+          "id": "pin_only_to_pay",
+          "title": { "en": "PIN is only to pay", "mr": "PIN फक्त पैसे देण्यासाठी" },
+          "text": {
+            "en": "Enter your UPI PIN only when you are sending money yourself.",
+            "mr": "तुम्ही स्वतः पैसे पाठवत असतानाच UPI PIN टाका."
+          },
+          "visual": { "kind": "keypad", "focus": "pin" },
+          "sensitive": "secret"
+        },
+        {
+          "id": "no_one_asks",
+          "title": { "en": "No one asks for it", "mr": "कोणीही विचारत नाही" },
+          "text": {
+            "en": "Bank, police or app staff never ask for your PIN or OTP on a call. Hang up.",
+            "mr": "बँक, पोलीस किंवा ॲपचे कर्मचारी कधीही कॉलवर PIN किंवा OTP विचारत नाहीत. कॉल बंद करा."
+          },
+          "visual": { "kind": "shield", "focus": "lock" },
+          "sensitive": "secret"
+        },
+        {
+          "id": "check_before_pay",
+          "title": { "en": "Check the name first", "mr": "आधी नाव तपासा" },
+          "text": {
+            "en": "Always read the name before paying. If unsure, stop and ask family.",
+            "mr": "पैसे देण्याआधी नेहमी नाव वाचा. खात्री नसेल, तर थांबा आणि घरच्यांना विचारा."
+          },
+          "visual": { "kind": "list", "focus": "first" }
+        }
+      ]
+    },
+    {
+      "id": "send_message",
+      "apps": ["whatsapp"],
+      "title": { "en": "Send a message", "mr": "मेसेज पाठवा" },
+      "about": "how to text someone, start a new chat",
+      "steps": [
+        { "ref": "open_app" },
+        {
+          "id": "new_chat",
+          "title": { "en": "Start a chat", "mr": "चॅट सुरू करा" },
+          "text": {
+            "en": "Tap the green message button at the bottom right, then tap the person's name.",
+            "mr": "खाली उजवीकडच्या हिरव्या मेसेज बटणावर दाबा, मग व्यक्तीच्या नावावर दाबा."
+          },
+          "visual": { "kind": "chat", "focus": "fab" }
+        },
+        {
+          "id": "type_message",
+          "title": { "en": "Type your message", "mr": "मेसेज लिहा" },
+          "text": {
+            "en": "Tap the box at the bottom. The keyboard opens. Type your message.",
+            "mr": "खालच्या जागेवर दाबा. कीबोर्ड उघडेल. तुमचा मेसेज लिहा."
+          },
+          "visual": { "kind": "chat", "focus": "input" }
+        },
+        {
+          "id": "tap_send",
+          "title": { "en": "Send it", "mr": "पाठवा" },
+          "text": {
+            "en": "Tap the green arrow button to send.",
+            "mr": "पाठवण्यासाठी हिरव्या बाणाच्या बटणावर दाबा."
+          },
+          "visual": { "kind": "chat", "focus": "send" }
+        }
+      ]
+    },
+    {
+      "id": "voice_message",
+      "apps": ["whatsapp"],
+      "title": { "en": "Send a voice message", "mr": "आवाजातील मेसेज पाठवा" },
+      "about": "record and send audio with the mic button",
+      "steps": [
+        { "ref": "open_chat" },
+        {
+          "id": "hold_mic",
+          "title": { "en": "Hold the mic and speak", "mr": "माईक दाबून धरा आणि बोला" },
+          "text": {
+            "en": "Press and hold the green mic button and speak. Let go to send.",
+            "mr": "हिरवे माईकचे बटण दाबून धरा आणि बोला. सोडल्यावर मेसेज जातो."
+          },
+          "visual": { "kind": "chat", "focus": "mic" }
+        },
+        {
+          "id": "lock_mic",
+          "title": { "en": "For long messages, lock it", "mr": "मोठ्या मेसेजसाठी लॉक करा" },
+          "text": {
+            "en": "While holding, slide up to the lock. Now you can speak without holding, then tap send.",
+            "mr": "दाबून धरलेले असताना वर लॉककडे सरकवा. आता न धरता बोला, मग send वर दाबा."
+          },
+          "visual": { "kind": "chat", "focus": "mic" }
+        }
+      ]
+    },
+    {
+      "id": "keyboard_language",
+      "apps": ["whatsapp"],
+      "title": { "en": "Type in Marathi", "mr": "मराठीत टाइप करा" },
+      "about": "change keyboard language, add Marathi or Hindi keyboard, switch language",
+      "steps": [
+        {
+          "id": "open_keyboard",
+          "title": { "en": "Open the keyboard", "mr": "कीबोर्ड उघडा" },
+          "text": {
+            "en": "Open any chat and tap the message box so the keyboard opens.",
+            "mr": "कोणतेही चॅट उघडा आणि मेसेजच्या जागेवर दाबा, म्हणजे कीबोर्ड उघडेल."
+          },
+          "visual": { "kind": "keyboard" }
+        },
+        {
+          "id": "add_language",
+          "title": { "en": "Add Marathi", "mr": "मराठी जोडा" },
+          "text": {
+            "en": "Tap the gear icon on the keyboard, then Languages, then Add keyboard, and choose Marathi.",
+            "mr": "कीबोर्डवरील सेटिंगच्या चिन्हावर दाबा, मग Languages, मग Add keyboard, आणि मराठी निवडा."
+          },
+          "visual": { "kind": "keyboard", "focus": "gear" }
+        },
+        {
+          "id": "switch_language",
+          "title": { "en": "Switch language", "mr": "भाषा बदला" },
+          "text": {
+            "en": "Tap the globe key, or press and hold the space bar, to switch between English and Marathi.",
+            "mr": "इंग्रजी आणि मराठीमध्ये बदलण्यासाठी ग्लोबच्या बटणावर दाबा, किंवा space bar दाबून धरा."
+          },
+          "visual": { "kind": "keyboard", "focus": "globe" }
+        }
+      ]
+    },
+    {
+      "id": "contact_name",
+      "apps": ["whatsapp"],
+      "title": { "en": "Save or rename a contact", "mr": "संपर्क सेव्ह करा किंवा नाव बदला" },
+      "about": "change contact name, save a new number",
+      "steps": [
+        { "ref": "open_chat" },
+        {
+          "id": "tap_top_name",
+          "title": { "en": "Tap the name at the top", "mr": "वरच्या नावावर दाबा" },
+          "text": {
+            "en": "In the chat, tap the person's name or number at the top.",
+            "mr": "चॅटमध्ये वर दिसणाऱ्या व्यक्तीच्या नावावर किंवा नंबरवर दाबा."
+          },
+          "visual": { "kind": "profile", "focus": "name" }
+        },
+        {
+          "id": "edit_contact",
+          "title": { "en": "Tap Edit or Save", "mr": "Edit किंवा Save वर दाबा" },
+          "text": {
+            "en": "Tap the three dots, then 'Edit' (or 'Save contact' for a new number). Your phone's contacts open.",
+            "mr": "तीन टिंबांवर दाबा, मग 'Edit' (नवीन नंबरसाठी 'Save contact'). फोनचे Contacts उघडेल."
+          },
+          "visual": { "kind": "menu", "focus": "edit" }
+        },
+        {
+          "id": "save_name",
+          "title": { "en": "Type the name and save", "mr": "नाव लिहा आणि सेव्ह करा" },
+          "text": {
+            "en": "Type the new name and tap Save.",
+            "mr": "नवीन नाव लिहा आणि Save वर दाबा."
+          },
+          "visual": { "kind": "contact", "focus": "save" }
+        }
+      ]
+    },
+    {
+      "id": "profile_photo",
+      "apps": ["whatsapp"],
+      "title": { "en": "Change your profile photo (DP)", "mr": "प्रोफाइल फोटो (DP) बदला" },
+      "about": "change DP, display picture, profile picture",
+      "steps": [
+        {
+          "id": "open_settings",
+          "title": { "en": "Open Settings", "mr": "Settings उघडा" },
+          "text": {
+            "en": "Open WhatsApp, tap the three dots at the top right, then Settings.",
+            "mr": "WhatsApp उघडा, वर उजवीकडील तीन टिंबांवर दाबा, मग Settings वर दाबा."
+          },
+          "visual": { "kind": "menu", "focus": "settings" }
+        },
+        {
+          "id": "tap_profile",
+          "title": { "en": "Tap your photo", "mr": "तुमच्या फोटोवर दाबा" },
+          "text": {
+            "en": "Tap your name and photo at the top, then the camera icon on the photo.",
+            "mr": "वर तुमच्या नावावर आणि फोटोवर दाबा, मग फोटोवरच्या कॅमेऱ्याच्या चिन्हावर दाबा."
+          },
+          "visual": { "kind": "profile", "focus": "photo" }
+        },
+        {
+          "id": "choose_photo",
+          "title": { "en": "Pick a photo", "mr": "फोटो निवडा" },
+          "text": {
+            "en": "Choose Gallery or Camera, pick a photo, adjust it and tap Done.",
+            "mr": "Gallery किंवा Camera निवडा, फोटो निवडा, नीट बसवा आणि Done वर दाबा."
+          },
+          "visual": { "kind": "list", "focus": "first" }
+        }
+      ]
+    },
+    {
+      "id": "post_status",
+      "apps": ["whatsapp"],
+      "title": { "en": "Put a status", "mr": "स्टेटस ठेवा" },
+      "about": "share a photo or text status for 24 hours",
+      "steps": [
+        {
+          "id": "open_updates",
+          "title": { "en": "Open Updates", "mr": "Updates उघडा" },
+          "text": {
+            "en": "Open WhatsApp and tap 'Updates' at the bottom.",
+            "mr": "WhatsApp उघडा आणि खाली 'Updates' वर दाबा."
+          },
+          "visual": { "kind": "status" }
+        },
+        {
+          "id": "add_status",
+          "title": { "en": "Add a photo or text", "mr": "फोटो किंवा मजकूर जोडा" },
+          "text": {
+            "en": "Tap the camera button for a photo, or the pencil for text.",
+            "mr": "फोटोसाठी कॅमेऱ्याचे बटण, किंवा मजकुरासाठी पेन्सिलचे बटण दाबा."
+          },
+          "visual": { "kind": "status", "focus": "add" }
+        },
+        {
+          "id": "share_status",
+          "title": { "en": "Share it", "mr": "शेअर करा" },
+          "text": {
+            "en": "Tap the green send button. Your contacts can see it for 24 hours.",
+            "mr": "हिरव्या send बटणावर दाबा. तुमच्या संपर्कांना ते 24 तास दिसेल."
+          },
+          "visual": { "kind": "status", "focus": "send" }
+        }
+      ]
+    },
+    {
+      "id": "communities",
+      "apps": ["whatsapp"],
+      "title": { "en": "What are communities?", "mr": "कम्युनिटी म्हणजे काय?" },
+      "about": "what communities are and why to join",
+      "steps": [
+        {
+          "id": "what_community",
+          "title": { "en": "A group of groups", "mr": "ग्रुप्सचा ग्रुप" },
+          "text": {
+            "en": "A community joins many groups together, like a society, school or office, with one announcement group.",
+            "mr": "कम्युनिटी म्हणजे सोसायटी, शाळा किंवा ऑफिससारखे अनेक ग्रुप एकत्र, आणि एक घोषणांचा ग्रुप."
+          },
+          "visual": { "kind": "community" }
+        },
+        {
+          "id": "why_community",
+          "title": { "en": "Why join", "mr": "का सामील व्हावे" },
+          "text": {
+            "en": "You get important notices in one place, and you choose which smaller groups to join.",
+            "mr": "महत्त्वाच्या सूचना एकाच ठिकाणी मिळतात, आणि कोणत्या छोट्या ग्रुपमध्ये जायचे ते तुम्ही ठरवता."
+          },
+          "visual": { "kind": "community", "focus": "announce" }
+        },
+        {
+          "id": "community_safety",
+          "title": { "en": "Join only trusted ones", "mr": "फक्त ओळखीच्या कम्युनिटीत जा" },
+          "text": {
+            "en": "Join only communities sent by people you know.",
+            "mr": "फक्त ओळखीच्या लोकांनी पाठवलेल्या कम्युनिटीतच सामील व्हा."
+          },
+          "visual": { "kind": "shield", "focus": "people" }
+        }
+      ]
+    },
+    {
+      "id": "join_community",
+      "apps": ["whatsapp"],
+      "title": { "en": "Join a community", "mr": "कम्युनिटीत सामील व्हा" },
+      "about": "join using an invite link, see its groups",
+      "steps": [
+        {
+          "id": "open_invite",
+          "title": { "en": "Open the invite link", "mr": "निमंत्रण लिंक उघडा" },
+          "text": {
+            "en": "Tap the community invite link that someone sent you.",
+            "mr": "कोणीतरी पाठवलेल्या कम्युनिटीच्या निमंत्रण लिंकवर दाबा."
+          },
+          "visual": { "kind": "chat", "focus": "link" }
+        },
+        {
+          "id": "tap_join",
+          "title": { "en": "Tap Join", "mr": "Join वर दाबा" },
+          "text": {
+            "en": "Tap 'Join community'.",
+            "mr": "'Join community' वर दाबा."
+          },
+          "visual": { "kind": "button" }
+        },
+        {
+          "id": "pick_groups",
+          "title": { "en": "Choose its groups", "mr": "त्यातील ग्रुप निवडा" },
+          "text": {
+            "en": "Open the Communities tab to see its groups, and join the ones you want.",
+            "mr": "Communities टॅब उघडून त्यातील ग्रुप पाहा, आणि हवे त्या ग्रुपमध्ये सामील व्हा."
+          },
+          "visual": { "kind": "community", "focus": "join" }
+        }
+      ]
+    },
+    {
+      "id": "video_call",
+      "apps": ["whatsapp"],
+      "title": { "en": "Make a video call", "mr": "व्हिडिओ कॉल करा" },
+      "about": "video or voice call on WhatsApp",
+      "steps": [
+        { "ref": "open_chat" },
+        {
+          "id": "tap_video",
+          "title": { "en": "Tap the camera icon", "mr": "कॅमेऱ्याच्या चिन्हावर दाबा" },
+          "text": {
+            "en": "Tap the video camera icon at the top for a video call, or the phone icon for a voice call.",
+            "mr": "व्हिडिओ कॉलसाठी वरच्या कॅमेऱ्याच्या चिन्हावर, आणि आवाजाच्या कॉलसाठी फोनच्या चिन्हावर दाबा."
+          },
+          "visual": { "kind": "chat", "focus": "video" }
+        },
+        {
+          "id": "end_call",
+          "title": { "en": "End the call", "mr": "कॉल संपवा" },
+          "text": {
+            "en": "Tap the red button to end the call.",
+            "mr": "कॉल संपवण्यासाठी लाल बटणावर दाबा."
+          },
+          "visual": { "kind": "button", "focus": "red" }
+        }
+      ]
+    },
+    {
+      "id": "send_photo",
+      "apps": ["whatsapp"],
+      "title": { "en": "Send a photo", "mr": "फोटो पाठवा" },
+      "about": "share a photo or document in a chat",
+      "steps": [
+        { "ref": "open_chat" },
+        {
+          "id": "tap_attach",
+          "title": { "en": "Tap the pin or camera", "mr": "पिन किंवा कॅमेऱ्यावर दाबा" },
+          "text": {
+            "en": "In the message box, tap the paper-clip (pin) or the camera icon.",
+            "mr": "मेसेजच्या जागेत पेपर-क्लिप (पिन) किंवा कॅमेऱ्याच्या चिन्हावर दाबा."
+          },
+          "visual": { "kind": "chat", "focus": "attach" }
+        },
+        {
+          "id": "pick_photo",
+          "title": { "en": "Pick and send", "mr": "निवडा आणि पाठवा" },
+          "text": {
+            "en": "Choose Gallery, tap the photo, then tap the green send button.",
+            "mr": "Gallery निवडा, फोटोवर दाबा, मग हिरव्या send बटणावर दाबा."
+          },
+          "visual": { "kind": "list", "focus": "first" }
+        }
+      ]
+    },
+    {
+      "id": "block_spam",
+      "apps": ["whatsapp"],
+      "title": { "en": "Block a spam number", "mr": "स्पॅम नंबर ब्लॉक करा" },
+      "about": "block or report unknown or fraud numbers",
+      "steps": [
+        { "ref": "open_chat" },
+        {
+          "id": "open_menu",
+          "title": { "en": "Open the menu", "mr": "मेनू उघडा" },
+          "text": {
+            "en": "Tap the three dots at the top right, then More, then Block (or Report).",
+            "mr": "वर उजवीकडील तीन टिंबांवर दाबा, मग More, मग Block (किंवा Report)."
+          },
+          "visual": { "kind": "menu", "focus": "block" }
+        },
+        {
+          "id": "confirm_block",
+          "title": { "en": "Confirm", "mr": "पक्के करा" },
+          "text": {
+            "en": "Tap Block again. They can no longer message or call you.",
+            "mr": "पुन्हा Block वर दाबा. आता ते तुम्हाला मेसेज किंवा कॉल करू शकत नाहीत."
+          },
+          "visual": { "kind": "button", "focus": "red" }
+        }
+      ]
+    }
+  ]
+}

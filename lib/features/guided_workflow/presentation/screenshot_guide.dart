@@ -29,7 +29,12 @@ class ScreenshotGuide extends StatefulWidget {
     this.maxHeight = 440,
     this.pulse = 0,
     this.imageOverride,
+    this.fallback,
   });
+
+  /// Shown instead of the placeholder when the screenshot asset doesn't exist
+  /// (e.g. an animated illustration), so the user never sees an empty picture.
+  final Widget? fallback;
 
   final StepScreenshot screenshot;
   final String language;
@@ -130,6 +135,7 @@ class _ScreenshotGuideState extends State<ScreenshotGuide>
     final l10n = AppLocalizations.of(context);
     return switch (_load) {
       // Scales down to fit whatever space the screen gives the picture.
+      _Load.missing when widget.fallback != null => widget.fallback!,
       _Load.missing => ConstrainedBox(
         constraints: BoxConstraints(maxHeight: widget.maxHeight),
         child: FittedBox(

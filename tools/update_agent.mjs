@@ -6,7 +6,7 @@
 //   node tools/update_agent.mjs https://<tunnel>.trycloudflare.com --apply  # update
 //
 // A full backup of the live agent is written to server/agent_backups/ first.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 process.loadEnvFile(fileURLToPath(new URL("../server/.env", import.meta.url)));
@@ -24,28 +24,52 @@ const headers = { Authorization: `Bearer ${BOLNA_API_KEY}`, "Content-Type": "app
 const START = "[SAATHI SCREEN GUIDE]";
 const END = "[/SAATHI SCREEN GUIDE]";
 const MIN_CALL_SECONDS = 900;
+const WELCOME =
+  "Namaskar! I'm Saathi. I can help you use Ola, Uber, Rapido, Google Pay, PhonePe and WhatsApp. What do you need?";
+
+// Topic list for the prompt, generated from the app's own catalog.
+const catalog = JSON.parse(
+  readFileSync(fileURLToPath(new URL("../assets/guides/catalog.json", import.meta.url)), "utf8"),
+);
+const groups = new Map();
+for (const t of catalog.topics) {
+  const key = t.apps.join(", ");
+  if (!groups.has(key)) groups.set(key, []);
+  groups.get(key).push(`${t.id} (${t.title.en}${t.about ? ": " + t.about : ""})`);
+}
+const topicList = [...groups]
+  .map(([apps, list]) => `- ${apps}: ${list.join("; ")}`)
+  .join("\n");
+const appIds = Object.keys(catalog.apps);
+const topicIds = [...new Set(catalog.topics.map((t) => t.id))];
 
 const rules = [
-  "The user sees the Saathi app on their phone while talking to you. It shows one step at a time with a picture of the ride app. Keep the screen in step with the conversation by calling ",
+  `You are Saathi, a patient, warm voice helper for people who are not confident with phones, often older parents. You ONLY help with these six apps: Ola, Uber and Rapido (rides), Google Pay and PhonePe (UPI payments), and WhatsApp (messages). Answer any question about using them: simply, in the user's language, one step at a time, waiting for them to act.
+If a question is about anything else (other apps, general knowledge, news, health, money advice, maths, jokes, and so on), politely say you can only help with these six apps, and give an example of what you can do. Do not answer it.
+
+The user sees the Saathi app on their phone. It shows a picture for each step. Keep it in step with the conversation by calling `,
   { tool: true },
   ". Always pass saathi_device = ",
   { variable: "saathi_device" },
   `.
-- At the start, ask which ride app they use (Ola, Uber or Rapido) and whether they already use it or are new to it. Then call saathi_guide with action "start_guide", app ("ola", "uber" or "rapido") and new_user ("yes" if they are new, otherwise "no").
-- Every answer from the tool tells you the current step: step_id, step_title and instruction. Explain only that step, briefly and simply, in the user's language. Then wait.
-- When the user says they finished the step (for example "done", "ho", "zala", "kela"), call saathi_guide with action "step_done" and that step_id. Then explain the next step from the answer. The screen moves on by itself.
-- If they want to go back, call action "go_back" with the current step_id.
-- When the answer has is_final_question true, ask what the app shows. Call action "outcome" with booked "yes" or "no" based only on what the user says.
-- If you are not sure which step they are on, call action "current_step".
-- If the answer has ok false, follow its message and its step.
-- Never skip steps. Never ask for, repeat or listen to OTPs, PINs or passwords.`,
+- When a question matches a topic below, call action "show_topic" with app and topic, then explain only the current step from the answer. For book_ride also pass new_user ("yes" if they are new to the app; ask if you don't know).
+- Every answer tells you step_id, step_title and instruction. Explain that step briefly, then wait.
+- When the user says they finished the step ("done", "ho", "zala", "kela"), call "step_done" with that step_id, then explain the next step from the answer. The screen moves by itself.
+- If they want to go back, call "go_back" with the current step_id. If unsure where they are, call "current_step". If an answer has ok false, follow its message and its step.
+- If is_final_question is true, ask what the app shows and call "outcome" with booked "yes" or "no", only from what the user says.
+- If the conversation moves to something with no topic, call "close_topic" and answer by voice.
+- Never ask for, repeat or listen to OTPs, UPI PINs, card numbers, CVV or passwords. If the user starts to read one out, stop them kindly.
+- Never say you can see their screen, or that you tapped, typed, paid or booked anything.
+
+Topics (app ids: topic id (title: about)):
+${topicList}`,
 ];
 
 const toolDef = {
   key: "custom_task",
   name: "saathi_guide",
   description:
-    "Moves the guide on the user's Saathi screen. Call it when the user names their ride app (start_guide), says they finished the current step (step_done), wants to go back (go_back), reports whether the ride was booked (outcome), or when you need the current step (current_step).",
+    "Controls the guide on the user's Saathi screen: open a topic (show_topic), the user finished the current step (step_done), go back (go_back), ride booked or not (outcome), clear the screen (close_topic), or get the current step (current_step).",
   pre_call_message: "",
   parameters: {
     type: "object",
@@ -53,11 +77,12 @@ const toolDef = {
       saathi_device: { type: "string", description: "Device id given in the prompt." },
       action: {
         type: "string",
-        enum: ["start_guide", "step_done", "go_back", "outcome", "current_step"],
+        enum: ["show_topic", "step_done", "go_back", "outcome", "close_topic", "current_step"],
         description: "What happened in the conversation.",
       },
-      app: { type: "string", enum: ["ola", "uber", "rapido"], description: "For start_guide." },
-      new_user: { type: "string", enum: ["yes", "no"], description: "For start_guide." },
+      app: { type: "string", enum: appIds, description: "App id, for show_topic." },
+      topic: { type: "string", enum: topicIds, description: "Topic id, for show_topic." },
+      new_user: { type: "string", enum: ["yes", "no"], description: "For book_ride." },
       step_id: { type: "string", description: "The current step_id from the last answer." },
       booked: { type: "string", enum: ["yes", "no"], description: "For outcome." },
     },
@@ -141,6 +166,9 @@ if (task.task_config && (oldTerminate ?? 0) < MIN_CALL_SECONDS) {
 }
 
 const agentConfig = {};
+if (current.agent_welcome_message !== WELCOME) {
+  console.log(`welcome:          "${current.agent_welcome_message}" -> "${WELCOME}"`);
+}
 for (const key of [
   "agent_name",
   "agent_welcome_message",
@@ -153,6 +181,7 @@ for (const key of [
   if (current[key] !== undefined && current[key] !== null) agentConfig[key] = current[key];
 }
 agentConfig.tasks = tasks;
+agentConfig.agent_welcome_message = WELCOME;
 
 const prompts = structuredClone(current.agent_prompts ?? { task_1: { system_prompt: "" } });
 prompts.task_1.system_prompt = `${stripBlock(prompts.task_1.system_prompt ?? "")}\n\n${START}\n${plainRules()}\n${END}`;

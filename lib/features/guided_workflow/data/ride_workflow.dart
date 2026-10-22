@@ -98,13 +98,46 @@ WorkflowDefinition rideWorkflow(RideApp app, {required bool fromInstall}) {
   ];
   return WorkflowDefinition(
     id: app.workflowId(fromInstall: fromInstall),
+    app: app.name,
+    topic: 'book_ride',
     title: LocalizedText(
       en: 'Book a ride with ${app.displayName}',
       mr: '${app.displayName} वर राइड बुक करा',
     ),
-    steps: [for (final id in ids) _step(app, id)],
+    steps: [for (final id in ids) _withVisual(_step(app, id))],
   );
 }
+
+/// Animated illustration used when a step has no recorded screenshot (or while it
+/// loads), so the screen is never empty.
+const _rideVisuals = {
+  'install_app': StepVisual('play_store'),
+  'open_app': StepVisual('home_icon'),
+  'enter_phone': StepVisual('keypad', focus: 'phone'),
+  'enter_otp': StepVisual('otp'),
+  'allow_location': StepVisual('permission'),
+  'optional_setup': StepVisual('button'),
+  'find_locations': StepVisual('search', focus: 'map'),
+  'enter_destination': StepVisual('search'),
+  'check_locations': StepVisual('map', focus: 'route'),
+  'review_rides': StepVisual('list', focus: 'price'),
+  'check_fare': StepVisual('list', focus: 'price'),
+  'decide_booking': StepVisual('button'),
+  'confirm_pickup': StepVisual('map', focus: 'pin'),
+  'confirm_outcome': StepVisual('ride_card', focus: 'otp'),
+};
+
+WorkflowStep _withVisual(WorkflowStep s) => WorkflowStep(
+  id: s.id,
+  title: s.title,
+  instruction: s.instruction,
+  simplerInstruction: s.simplerInstruction,
+  screenshot: s.screenshot,
+  visual: _rideVisuals[s.id],
+  helpers: s.helpers,
+  kind: s.kind,
+  sensitivity: s.sensitivity,
+);
 
 /// Screens recorded for each app. Other steps show a labelled placeholder.
 const _recorded = {

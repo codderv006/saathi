@@ -83,13 +83,24 @@ enum StepHelper {
   copyText,
 }
 
+/// Animated vector illustration for a step: a stylised phone screen of [kind]
+/// (e.g. `chat`, `qr`, `ride_card`) with a pulsing tap target at [focus]. Used when
+/// there is no real screenshot, so a step never shows an empty picture.
+class StepVisual {
+  const StepVisual(this.kind, {this.focus});
+
+  final String kind;
+  final String? focus;
+}
+
 class WorkflowStep {
   const WorkflowStep({
     required this.id,
     required this.title,
     required this.instruction,
-    required this.simplerInstruction,
+    this.simplerInstruction,
     this.screenshot,
+    this.visual,
     this.helpers = const {},
     this.kind = StepKind.instruction,
     this.sensitivity = Sensitivity.none,
@@ -99,9 +110,10 @@ class WorkflowStep {
   final LocalizedText title;
   final LocalizedText instruction;
 
-  /// "Explain it more simply" text.
-  final LocalizedText simplerInstruction;
+  /// "Explain it more simply" text (optional).
+  final LocalizedText? simplerInstruction;
   final StepScreenshot? screenshot;
+  final StepVisual? visual;
   final Set<StepHelper> helpers;
   final StepKind kind;
 
@@ -116,6 +128,8 @@ class WorkflowDefinition {
     required this.id,
     required this.title,
     required this.steps,
+    this.app,
+    this.topic,
     this.supportedLanguages = const {'en', 'mr'},
   }) : assert(steps.isNotEmpty),
        assert(
@@ -132,6 +146,12 @@ class WorkflowDefinition {
   final String id;
   final LocalizedText title;
   final List<WorkflowStep> steps;
+
+  /// App id from the catalog (ola, uber, rapido, gpay, phonepe, whatsapp).
+  final String? app;
+
+  /// Topic id within the app (book_ride, scan_qr, post_status, …).
+  final String? topic;
   final Set<String> supportedLanguages;
 
   String get initialStepId => steps.first.id;

@@ -115,6 +115,7 @@ class TestApp {
     final voice = FakeVoice();
     final android = FakeAndroid();
     final memory = store ?? MemoryStore();
+    final catalog = await WorkflowRegistry.load();
     final guide = WorkflowController(
       store: memory,
       findDefinition: WorkflowRegistry.find,
@@ -126,6 +127,7 @@ class TestApp {
         voice: voice,
         guide: guide,
         android: android,
+        catalog: catalog,
         startupRestore: restore,
       ),
       voice,

@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import '../core/services/android_bridge.dart';
 import '../core/services/settings_controller.dart';
+import '../features/guided_workflow/data/guide_catalog.dart';
 import '../features/guided_workflow/domain/workflow_controller.dart';
 import '../features/voice_session/domain/voice_session_service.dart';
 
@@ -12,6 +13,7 @@ class AppServices {
     required this.voice,
     required this.guide,
     required this.android,
+    required this.catalog,
     this.startupRestore = RestoreResult.none,
     this.userId,
   });
@@ -25,6 +27,9 @@ class AppServices {
   /// The active guided workflow (one at a time).
   final WorkflowController guide;
   final AndroidBridge android;
+
+  /// Apps and topics (Ola, Uber, Rapido, Google Pay, PhonePe, WhatsApp).
+  final GuideCatalog catalog;
 
   /// How restoring saved progress went at launch, so Home can explain problems once.
   RestoreResult startupRestore;

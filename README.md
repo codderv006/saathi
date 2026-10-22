@@ -1,31 +1,52 @@
 # Saathi
 
-Voice-first guide that helps people (often older parents) use everyday apps themselves,
-one step at a time, in **English and Marathi**. First milestone: **booking a ride with
-Ola, Uber or Rapido**, starting either from a fresh install (Play Store → sign-up → OTP →
-location → booking) or for someone already signed in.
+Voice-first helper for people (often older parents) who are not confident with phone
+apps. Tap the mic and ask anything about **Ola, Uber, Rapido** (rides), **Google Pay,
+PhonePe** (UPI payments) or **WhatsApp**, in **English or Marathi**. Saathi talks you
+through it while the screen shows the matching step: a real redacted screenshot where we
+have one, otherwise an animated illustration of the app. It never taps, types, pays or
+books for you, and it politely declines questions about anything else.
 
-Saathi never taps, types, books or pays inside another app. It explains, shows a
-screenshot, and waits for the user to confirm.
+## How it works
 
-## Status (2026-10-21)
+```
+Phone (Flutter)                        PC (dev)                         Bolna
+ tap mic ─ POST /session ───────────▶ session_server.mjs ─ mint ─────▶ voice agent (EN/MR)
+ WebView + @bolna/web-call ◀═══════════════ WebRTC call ═════════════▶      │
+ guide screen ◀─ /events long-poll ── relay ◀─ /tool ◀─ Cloudflare tunnel ◀─┘ saathi_guide tool
+```
+
+The agent can only *request* guide actions (`show_topic`, `step_done`, `go_back`,
+`outcome`, `close_topic`). The app's workflow engine applies them: current step only, no
+skipping, a ride is "booked" only from the user's own answer.
+
+## Coverage (assets/guides/catalog.json)
+
+| Apps | Topics |
+|---|---|
+| Ola, Uber, Rapido | book a ride (new user from Play Store, or signed in), cancel, vehicle number, call/message driver, fare, driver ETA, ride OTP/PIN, paying, sharing the trip and SOS |
+| Google Pay, PhonePe | link bank + UPI PIN, pay a phone number, scan QR, check balance, add credit/RuPay card, receive money, history, failed payments, PIN/OTP safety |
+| WhatsApp | send a message, voice message, type in Marathi (keyboard language), save/rename contact, profile photo (DP), status, what communities are and why, joining one, video call, photos, blocking spam |
+
+Real screenshots exist for Ola/Uber/Rapido ride booking (`tools/build_screenshots.py`
+from screen recordings, personal data blurred). Every other step uses an animated vector
+illustration (`app_illustration.dart`), so the screen is never empty.
+
+## Status (2026-10-22)
 
 | Area | State |
 |---|---|
-| App shell, design system, EN/MR localisation | Done, device-tested (Realme 6, Android 11) |
-| Ride guides: Ola / Uber / Rapido × fresh-install / signed-in | Done, device-tested with placeholders |
-| Workflow rules (explicit confirm, no skipping, history, pause, honest outcome) | Done, unit + widget tested |
-| Local progress save/restore (incl. force-kill) | Done, device-tested |
-| Bolna voice (WebView SDK) inside the app | Done, device-tested: connect, MR session, background 20 s, return, mic released |
-| Real screenshots + annotations | **Waiting for your recordings** |
-| Agent prompt using step context | Written (`docs/bolna_agent_prompt.md`), **not yet applied** in Bolna |
-| Firebase (Spark, free): anonymous auth + Firestore cloud copy | Done, device-tested (project `saathi-b82ed`): sign-in, phone-first save with background cloud sync, read-back IN SYNC through live rules. Rules: 10 emulator tests. No Cloud Functions (Blaze-only) |
+| Mic-first UI (orb, bilingual invite, live call pill, step cards, browse) | Done, on device |
+| 6 apps / 29 topics, EN + MR, animated illustrations | Done, 64 tests |
+| Voice-driven screen (`saathi_guide` tool) | Ride flow verified live 2026-10-21; general topics need a spoken test |
+| Agent scope (only these apps, declines others) | Prompt applied to Bolna agent; needs a spoken test |
+| Firebase (Spark): anonymous auth + Firestore cloud copy, tested rules | Done |
+| Marathi copy review by a native speaker | Pending |
 
 ## Run on a phone
 
 ```
-node server/session_server.mjs                         # keep running (reads server/.env)
-%LOCALAPPDATA%\Android\Sdk\platform-tools\adb.exe reverse tcp:8787 tcp:8787
+powershell -ExecutionPolicy Bypass -File dev.ps1   # phone forward + server + tunnel + agent URL
 flutter run --dart-define-from-file=poc_config.json
 ```
 

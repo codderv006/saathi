@@ -174,5 +174,22 @@
   },
   "yesShort": "Yes",
   "noNewUser": "No, I'm new",
-  "newRide": "New ride"
+  "newRide": "New ride",
+  "heroTapEn": "Tap to get help",
+  "heroTapMr": "मदतीसाठी टॅप करा",
+  "askAnything": "Ask me anything about these apps",
+  "browseGuides": "Browse guides",
+  "askSomethingElse": "Ask something else",
+  "tapToTalk": "Tap to talk",
+  "allDone": "All done",
+  "topicDoneBody": "You finished this guide.",
+  "guidesFor": "Guides for {app}",
+  "@guidesFor": {
+    "placeholders": {
+      "app": {
+        "type": "String"
+      }
+    }
+  },
+  "startGuide": "Start"
 }

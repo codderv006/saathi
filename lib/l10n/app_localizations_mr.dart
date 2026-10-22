@@ -417,4 +417,36 @@ class AppLocalizationsMr extends AppLocalizations {
 
   @override
   String get newRide => 'नवीन राइड';
+
+  @override
+  String get heroTapEn => 'Tap to get help';
+
+  @override
+  String get heroTapMr => 'मदतीसाठी टॅप करा';
+
+  @override
+  String get askAnything => 'या ॲप्सबद्दल मला काहीही विचारा';
+
+  @override
+  String get browseGuides => 'मार्गदर्शक पाहा';
+
+  @override
+  String get askSomethingElse => 'आणखी काही विचारा';
+
+  @override
+  String get tapToTalk => 'बोलण्यासाठी टॅप करा';
+
+  @override
+  String get allDone => 'झाले!';
+
+  @override
+  String get topicDoneBody => 'तुम्ही हे मार्गदर्शन पूर्ण केले.';
+
+  @override
+  String guidesFor(String app) {
+    return '$app साठी मार्गदर्शक';
+  }
+
+  @override
+  String get startGuide => 'सुरू करा';
 }

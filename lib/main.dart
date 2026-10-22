@@ -38,6 +38,7 @@ Future<void> main() async {
         : null,
   );
 
+  final catalog = await WorkflowRegistry.load();
   final store = SyncedWorkflowStore(local: LocalWorkflowStore());
   final guide = WorkflowController(
     store: store,
@@ -51,6 +52,7 @@ Future<void> main() async {
     voice: voice,
     guide: guide,
     android: android,
+    catalog: catalog,
     startupRestore: restore,
   );
   runApp(SaathiApp(services: services));

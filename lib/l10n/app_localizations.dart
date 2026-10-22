@@ -835,6 +835,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New ride'**
   String get newRide;
+
+  /// No description provided for @heroTapEn.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to get help'**
+  String get heroTapEn;
+
+  /// No description provided for @heroTapMr.
+  ///
+  /// In en, this message translates to:
+  /// **'मदतीसाठी टॅप करा'**
+  String get heroTapMr;
+
+  /// No description provided for @askAnything.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me anything about these apps'**
+  String get askAnything;
+
+  /// No description provided for @browseGuides.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse guides'**
+  String get browseGuides;
+
+  /// No description provided for @askSomethingElse.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask something else'**
+  String get askSomethingElse;
+
+  /// No description provided for @tapToTalk.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to talk'**
+  String get tapToTalk;
+
+  /// No description provided for @allDone.
+  ///
+  /// In en, this message translates to:
+  /// **'All done'**
+  String get allDone;
+
+  /// No description provided for @topicDoneBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You finished this guide.'**
+  String get topicDoneBody;
+
+  /// No description provided for @guidesFor.
+  ///
+  /// In en, this message translates to:
+  /// **'Guides for {app}'**
+  String guidesFor(String app);
+
+  /// No description provided for @startGuide.
+  ///
+  /// In en, this message translates to:
+  /// **'Start'**
+  String get startGuide;
 }
 
 class _AppLocalizationsDelegate

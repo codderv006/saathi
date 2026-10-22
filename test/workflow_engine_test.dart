@@ -125,7 +125,7 @@ void main() {
       for (final lang in ['en', 'mr']) {
         expect(step.title.of(lang), isNotEmpty);
         expect(step.instruction.of(lang), isNotEmpty);
-        expect(step.simplerInstruction.of(lang), isNotEmpty);
+        expect(step.simplerInstruction!.of(lang), isNotEmpty);
       }
     }
   });

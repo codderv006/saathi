@@ -65,3 +65,4 @@ frames_coarse/
 
 # Bolna agent config backups (contain the full prompt)
 server/agent_backups/
+server/logs/

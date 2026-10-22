@@ -122,5 +122,15 @@
   "alreadyUsing": "{app} आधीपासून वापरता का?",
   "yesShort": "हो",
   "noNewUser": "नाही, नवीन आहे",
-  "newRide": "नवीन राइड"
+  "newRide": "नवीन राइड",
+  "heroTapEn": "Tap to get help",
+  "heroTapMr": "मदतीसाठी टॅप करा",
+  "askAnything": "या ॲप्सबद्दल मला काहीही विचारा",
+  "browseGuides": "मार्गदर्शक पाहा",
+  "askSomethingElse": "आणखी काही विचारा",
+  "tapToTalk": "बोलण्यासाठी टॅप करा",
+  "allDone": "झाले!",
+  "topicDoneBody": "तुम्ही हे मार्गदर्शन पूर्ण केले.",
+  "guidesFor": "{app} साठी मार्गदर्शक",
+  "startGuide": "सुरू करा"
 }

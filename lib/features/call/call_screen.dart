@@ -1,29 +1,32 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 import '../../app/app_scope.dart';
 import '../../app/theme/app_colors.dart';
 import '../../app/theme/app_spacing.dart';
 import '../../core/config.dart';
-import '../../core/services/settings_controller.dart';
+import '../../core/widgets/ambient_background.dart';
 import '../../core/widgets/buttons.dart';
 import '../../core/widgets/language_toggle.dart';
 import '../../core/widgets/saathi_logo.dart';
 import '../../core/widgets/status_message.dart';
 import '../../l10n/app_localizations.dart';
-import '../guided_workflow/data/ride_workflow.dart';
-import '../guided_workflow/data/workflow_registry.dart';
+import '../guided_workflow/data/guide_catalog.dart';
 import '../guided_workflow/domain/workflow.dart';
 import '../guided_workflow/domain/workflow_controller.dart';
-import '../guided_workflow/presentation/screenshot_guide.dart';
 import '../settings/settings_screen.dart';
 import '../voice_session/domain/voice_session_service.dart';
-import '../voice_session/presentation/voice_orb.dart';
+import '../voice_session/presentation/hero_orb.dart';
 import '../voice_session/presentation/voice_status_text.dart';
+import 'browse_screen.dart';
 import 'guide_events_client.dart';
 import 'guide_tool_handler.dart';
+import 'guide_visual.dart';
 
-/// The whole app in one screen: the call starts on open, and the steps of the
-/// chosen guide show underneath it.
+/// The whole app in one screen. Tap the orb to talk; while the call runs, the
+/// guide the agent opens appears here and follows the conversation by itself.
 class CallScreen extends StatefulWidget {
   const CallScreen({super.key});
 
@@ -32,16 +35,11 @@ class CallScreen extends StatefulWidget {
 }
 
 class _CallScreenState extends State<CallScreen> {
-  RideApp? _pickedApp;
   bool _busy = false;
-
-  /// A guide restored from a previous run is only shown after the user chooses
-  /// to continue it.
   bool? _resumeChoiceNeeded;
   Outcome? _justFinished;
-
-  /// "New ride" pressed: show the app list even though an old guide is open.
-  bool _forcePicker = false;
+  bool _finishedWasRide = false;
+  String _finishedApp = '';
   bool _guideWasOpen = false;
   WorkflowController? _guide;
   GuideEventsClient? _agentEvents;
@@ -49,27 +47,26 @@ class _CallScreenState extends State<CallScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_resumeChoiceNeeded == null) {
-      final services = AppScope.of(context);
-      final session = services.guide.session;
-      _resumeChoiceNeeded = session != null && session.isOpen;
-      _guideWasOpen = session?.isOpen ?? false;
-      _guide = services.guide..addListener(_onGuideChanged);
-      // The agent moves the guide by voice; the screen follows without taps.
-      if (PocConfig.missing.isEmpty) {
-        final handler = GuideToolHandler(
-          guide: services.guide,
-          settings: services.settings,
-          userId: () => services.userId,
-        );
-        _agentEvents = GuideEventsClient(
-          baseUrl: PocConfig.serverBase,
-          token: PocConfig.devSessionToken,
-          deviceId: services.settings.installationId,
-          onEvent: handler.handle,
-        )..start();
-      }
-      WidgetsBinding.instance.addPostFrameCallback((_) => _call());
+    if (_resumeChoiceNeeded != null) return;
+    final services = AppScope.of(context);
+    final session = services.guide.session;
+    _resumeChoiceNeeded = session != null && session.isOpen;
+    _guideWasOpen = session?.isOpen ?? false;
+    _guide = services.guide..addListener(_onGuideChanged);
+    // The agent moves the guide by voice; the screen follows without taps.
+    if (PocConfig.missing.isEmpty) {
+      final handler = GuideToolHandler(
+        guide: services.guide,
+        settings: services.settings,
+        catalog: services.catalog,
+        userId: () => services.userId,
+      );
+      _agentEvents = GuideEventsClient(
+        baseUrl: PocConfig.serverBase,
+        token: PocConfig.devSessionToken,
+        deviceId: services.settings.installationId,
+        onEvent: handler.handle,
+      )..start();
     }
   }
 
@@ -86,12 +83,15 @@ class _CallScreenState extends State<CallScreen> {
     final open = session?.isOpen ?? false;
     setState(() {
       if (open) {
-        _pickedApp = null;
         _resumeChoiceNeeded = false;
         _justFinished = null;
-        _forcePicker = false;
       } else if (_guideWasOpen && session != null) {
         _justFinished = session.outcome;
+        _finishedWasRide = _guide?.definition?.topic == 'book_ride';
+        final appId = _guide?.definition?.app;
+        _finishedApp = appId == null
+            ? ''
+            : AppScope.of(context).catalog.apps[appId]?.name ?? '';
       }
     });
     _guideWasOpen = open;
@@ -136,23 +136,6 @@ class _CallScreenState extends State<CallScreen> {
 
   // ------------------------------------------------------------------ guide
 
-  Future<void> _startGuide(RideApp app, {required bool fromInstall}) async {
-    final services = AppScope.of(context);
-    setState(() => _busy = true);
-    final outcome = await services.guide.startNew(
-      definition: WorkflowRegistry.find(
-        app.workflowId(fromInstall: fromInstall),
-      )!,
-      sessionId: SettingsController.randomId(),
-      installationId: services.settings.installationId,
-      language: services.settings.language,
-      userId: services.userId,
-    );
-    if (!mounted) return;
-    setState(() => _busy = false);
-    if (outcome is SaveFailed) _toast(AppLocalizations.of(context).saveFailed);
-  }
-
   Future<void> _run(WorkflowCommand command) async {
     if (_busy) return; // no double taps
     setState(() => _busy = true);
@@ -161,114 +144,116 @@ class _CallScreenState extends State<CallScreen> {
     setState(() => _busy = false);
     final l10n = AppLocalizations.of(context);
     switch (outcome) {
-      case Applied():
-        break; // the guide listener updates the screen
       case SaveFailed():
         _toast(l10n.saveFailed);
       case Refused() || InvalidRequest():
         _toast(l10n.actionNotPossible);
-      case NeedsUserConfirmation():
-        break;
+      default:
+        break; // the guide listener updates the screen
     }
   }
 
-  void _newRide() => setState(() {
-    _justFinished = null;
-    _pickedApp = null;
-    _resumeChoiceNeeded = false;
-    _forcePicker = true;
-  });
+  Future<void> _backToHero() async {
+    final guide = AppScope.of(context).guide;
+    if (guide.session?.isOpen ?? false) await guide.clear();
+    setState(() {
+      _justFinished = null;
+      _resumeChoiceNeeded = false;
+    });
+  }
 
   void _toast(String message) => ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(message)));
+
+  void _openBrowse() => Navigator.push(
+    context,
+    MaterialPageRoute<void>(builder: (_) => const BrowseScreen()),
+  );
 
   // ------------------------------------------------------------------ UI
 
   @override
   Widget build(BuildContext context) {
     final services = AppScope.of(context);
-    final l10n = AppLocalizations.of(context);
     return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            _TopBar(
-              onSettings: () => Navigator.push(
-                context,
-                MaterialPageRoute<void>(builder: (_) => const SettingsScreen()),
+      backgroundColor: Colors.transparent,
+      body: AmbientBackground(
+        child: SafeArea(
+          child: Column(
+            children: [
+              _TopBar(
+                onSettings: () => Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const SettingsScreen(),
+                  ),
+                ),
               ),
-            ),
-            _CallBar(onCall: _call),
-            const Divider(height: 1),
-            Expanded(
-              child: ListenableBuilder(
-                listenable: services.guide,
-                builder: (context, _) {
-                  final guide = services.guide;
-                  final session = guide.session;
-                  final Widget content;
-                  if (_justFinished != null) {
-                    content = _Finished(
-                      outcome: _justFinished!,
-                      appName:
-                          RideApp.fromWorkflowId(
-                            session?.workflowId ?? '',
-                          )?.displayName ??
-                          '',
-                      onNewRide: _newRide,
-                    );
-                  } else if (!_forcePicker &&
-                      session != null &&
-                      session.isOpen &&
-                      _resumeChoiceNeeded == true) {
-                    content = _ResumeChoice(
-                      onContinue: () async {
-                        if (session.status == SessionStatus.paused) {
-                          await guide.apply(const Resume());
-                        }
-                        setState(() => _resumeChoiceNeeded = false);
-                      },
-                      onNew: _newRide,
-                    );
-                  } else if (!_forcePicker &&
-                      session != null &&
-                      session.isOpen &&
-                      _pickedApp == null) {
-                    content = _StepView(
-                      busy: _busy,
-                      onDone: (step) => _run(ConfirmStep(step.id)),
-                      onBack: (step) => _run(GoBack(step.id)),
-                      onOutcome: (step, o) => _run(ReportOutcome(step.id, o)),
-                      onNew: _newRide,
-                    );
-                  } else if (_pickedApp != null) {
-                    content = _SetupQuestion(
-                      app: _pickedApp!,
-                      busy: _busy,
-                      onAnswer: (fromInstall) =>
-                          _startGuide(_pickedApp!, fromInstall: fromInstall),
-                      onBack: () => setState(() => _pickedApp = null),
-                    );
-                  } else {
-                    content = _AppPicker(
-                      title: l10n.taskBookCab,
-                      onPick: (app) => setState(() => _pickedApp = app),
-                    );
-                  }
-                  return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: KeyedSubtree(
-                      key: ValueKey(
-                        '${content.runtimeType}-${session?.currentStepId}',
+              Expanded(
+                child: ListenableBuilder(
+                  listenable: Listenable.merge([
+                    services.guide,
+                    services.voice,
+                  ]),
+                  builder: (context, _) {
+                    final session = services.guide.session;
+                    final open = session != null && session.isOpen;
+                    final Widget content;
+                    final String key;
+                    if (_justFinished != null) {
+                      key = 'done';
+                      content = _FinishedView(
+                        outcome: _justFinished!,
+                        wasRide: _finishedWasRide,
+                        appName: _finishedApp,
+                        onNext: _backToHero,
+                      );
+                    } else if (open && _resumeChoiceNeeded == true) {
+                      key = 'resume';
+                      content = _ResumeChoice(
+                        onContinue: () async {
+                          if (session.status == SessionStatus.paused) {
+                            await services.guide.apply(const Resume());
+                          }
+                          setState(() => _resumeChoiceNeeded = false);
+                        },
+                        onNew: _backToHero,
+                      );
+                    } else if (open) {
+                      key = 'guide-${session.workflowId}';
+                      content = _GuideView(
+                        busy: _busy,
+                        onCall: _call,
+                        onDone: (s) => _run(ConfirmStep(s.id)),
+                        onBack: (s) => _run(GoBack(s.id)),
+                        onOutcome: (s, o) => _run(ReportOutcome(s.id, o)),
+                        onClose: _backToHero,
+                      );
+                    } else {
+                      key = 'hero';
+                      content = _HeroView(onCall: _call, onBrowse: _openBrowse);
+                    }
+                    return AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 350),
+                      switchInCurve: Curves.easeOutCubic,
+                      transitionBuilder: (child, a) => FadeTransition(
+                        opacity: a,
+                        child: SlideTransition(
+                          position: Tween(
+                            begin: const Offset(0, 0.03),
+                            end: Offset.zero,
+                          ).animate(a),
+                          child: child,
+                        ),
                       ),
-                      child: content,
-                    ),
-                  );
-                },
+                      child: KeyedSubtree(key: ValueKey(key), child: content),
+                    );
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -319,9 +304,571 @@ class _TopBar extends StatelessWidget {
   );
 }
 
-/// Compact, always-visible call status with the one action that matters now.
-class _CallBar extends StatelessWidget {
-  const _CallBar({required this.onCall});
+// ==================================================================== hero
+
+class _HeroView extends StatelessWidget {
+  const _HeroView({required this.onCall, required this.onBrowse});
+  final VoidCallback onCall;
+  final VoidCallback onBrowse;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context);
+    final voice = services.voice;
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final status = voice.status;
+    final live = status.isBusy;
+    final failed = status.phase == VoicePhase.failed;
+    final text = VoiceStatusText.of(l10n, status);
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        final orb = math.min(c.maxWidth * 0.72, c.maxHeight * 0.42);
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: c.maxHeight),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pagePadding,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const SizedBox(height: AppSpacing.md),
+                  Column(
+                    children: [
+                      HeroOrb(
+                        status: status,
+                        size: orb,
+                        onTap: live ? null : onCall,
+                        semanticLabel: '${l10n.heroTapEn}. ${l10n.heroTapMr}',
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Semantics(
+                        liveRegion: true,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: live || failed
+                              ? Column(
+                                  key: ValueKey(status),
+                                  children: [
+                                    Text(
+                                      text.title,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.headlineMedium,
+                                    ),
+                                    const SizedBox(height: AppSpacing.xxs),
+                                    Text(
+                                      failed ? text.hint : l10n.askAnything,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.bodyLarge!
+                                          .copyWith(
+                                            color: AppColors.textSecondary,
+                                          ),
+                                    ),
+                                  ],
+                                )
+                              // The one-line invitation, always in both languages.
+                              : Column(
+                                  key: const ValueKey('invite'),
+                                  children: [
+                                    Text(
+                                      l10n.heroTapEn,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.headlineMedium,
+                                    ),
+                                    const SizedBox(height: AppSpacing.xxs),
+                                    Text(
+                                      l10n.heroTapMr,
+                                      textAlign: TextAlign.center,
+                                      style: theme.textTheme.titleLarge!
+                                          .copyWith(
+                                            color: AppColors.textSecondary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      const _AppBadges(),
+                    ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      top: AppSpacing.lg,
+                      bottom: AppSpacing.md,
+                    ),
+                    child: live
+                        ? _CallControls(voice: voice)
+                        : failed &&
+                              status.failure == VoiceFailure.microphoneDenied
+                        ? PrimaryButton(
+                            label: l10n.allowMic,
+                            onPressed: services.android.openAppSettings,
+                          )
+                        : TextButton.icon(
+                            onPressed: onBrowse,
+                            icon: const Icon(Icons.grid_view_rounded, size: 20),
+                            label: Text(l10n.browseGuides),
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// The six supported apps, as small brand-coloured badges: tells the user what
+/// Saathi can help with at a glance.
+class _AppBadges extends StatelessWidget {
+  const _AppBadges();
+
+  @override
+  Widget build(BuildContext context) {
+    final apps = AppScope.of(context).catalog.apps.values.toList();
+    return ExcludeSemantics(
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: 10,
+        runSpacing: 8,
+        children: [
+          for (final a in apps)
+            Tooltip(
+              message: a.name,
+              child: Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Color(a.color),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x14000000), blurRadius: 6),
+                  ],
+                ),
+                child: Text(
+                  a.name.substring(0, 1),
+                  textScaler: TextScaler.noScaling,
+                  style: TextStyle(
+                    color: Color(a.color).computeLuminance() > 0.5
+                        ? AppColors.textPrimary
+                        : Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CallControls extends StatelessWidget {
+  const _CallControls({required this.voice});
+  final VoiceSessionService voice;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final connecting = voice.status.phase == VoicePhase.connecting;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _RoundButton(
+          icon: voice.muted ? Icons.mic_off_rounded : Icons.mic_none_rounded,
+          label: voice.muted ? l10n.unmute : l10n.mute,
+          onTap: connecting ? null : () => voice.setMuted(!voice.muted),
+        ),
+        const SizedBox(width: AppSpacing.xl),
+        _RoundButton(
+          icon: Icons.call_end_rounded,
+          label: l10n.endCall,
+          background: AppColors.roseStrong,
+          foreground: Colors.white,
+          onTap: voice.end,
+        ),
+      ],
+    );
+  }
+}
+
+class _RoundButton extends StatelessWidget {
+  const _RoundButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.background = Colors.white,
+    this.foreground = AppColors.textPrimary,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final Color background;
+  final Color foreground;
+  static const size = 64.0;
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+    message: label,
+    child: Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: background,
+        shape: const CircleBorder(),
+        elevation: 0,
+        shadowColor: Colors.transparent,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Icon(icon, color: foreground, size: size * 0.42),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+// ==================================================================== guide
+
+class _GuideView extends StatelessWidget {
+  const _GuideView({
+    required this.busy,
+    required this.onCall,
+    required this.onDone,
+    required this.onBack,
+    required this.onOutcome,
+    required this.onClose,
+  });
+
+  final bool busy;
+  final VoidCallback onCall;
+  final ValueChanged<WorkflowStep> onDone;
+  final ValueChanged<WorkflowStep> onBack;
+  final void Function(WorkflowStep, Outcome) onOutcome;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final services = AppScope.of(context);
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final language = services.settings.language;
+    final def = services.guide.definition!;
+    final step = services.guide.currentStep!;
+    final index = def.indexOf(step.id);
+    final app = def.app == null ? null : services.catalog.apps[def.app];
+
+    final layout = Column(
+      children: [
+        _CallPill(onCall: onCall),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pagePadding,
+            AppSpacing.xs,
+            AppSpacing.xs,
+            0,
+          ),
+          child: Row(
+            children: [
+              if (app != null)
+                Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.only(right: AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: Color(app.color),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              Expanded(
+                child: Text(
+                  def.title.of(language),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+              IconButton(
+                tooltip: l10n.exitGuide,
+                onPressed: onClose,
+                icon: const Icon(Icons.close_rounded, size: 20),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.pagePaddingCompact,
+            ),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, a) => FadeTransition(
+                opacity: a,
+                child: ScaleTransition(
+                  scale: Tween(begin: 0.98, end: 1.0).animate(a),
+                  child: child,
+                ),
+              ),
+              child: _StepCard(
+                key: ValueKey(step.id),
+                step: step,
+                app: app,
+                language: language,
+              ),
+            ),
+          ),
+        ),
+        _StepFooter(
+          index: index,
+          total: def.steps.length,
+          step: step,
+          busy: busy,
+          onDone: onDone,
+          onBack: onBack,
+          onOutcome: onOutcome,
+        ),
+      ],
+    );
+    // Very large text on a small screen scrolls instead of overflowing.
+    return LayoutBuilder(
+      builder: (context, c) => c.maxHeight >= 480
+          ? layout
+          : SingleChildScrollView(child: SizedBox(height: 780, child: layout)),
+    );
+  }
+}
+
+class _StepCard extends StatelessWidget {
+  const _StepCard({
+    super.key,
+    required this.step,
+    required this.app,
+    required this.language,
+  });
+
+  final WorkflowStep step;
+  final AppInfo? app;
+  final String language;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F5B4BC4),
+            blurRadius: 24,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.md,
+                AppSpacing.xs,
+              ),
+              child: LayoutBuilder(
+                builder: (context, c) => GuideVisual(
+                  step: step,
+                  app: app,
+                  language: language,
+                  maxHeight: c.maxHeight,
+                ),
+              ),
+            ),
+          ),
+          ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * 0.26,
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.xs,
+                AppSpacing.lg,
+                AppSpacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Semantics(
+                    header: true,
+                    child: Text(
+                      step.title.of(language),
+                      style: theme.textTheme.titleLarge,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    step.instruction.of(language),
+                    style: theme.textTheme.bodyLarge!.copyWith(fontSize: 16),
+                  ),
+                  if (step.sensitivity == Sensitivity.secretCode) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    InlineNotice(
+                      icon: Icons.lock_outline_rounded,
+                      text: l10n.secretCodeNote,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepFooter extends StatelessWidget {
+  const _StepFooter({
+    required this.index,
+    required this.total,
+    required this.step,
+    required this.busy,
+    required this.onDone,
+    required this.onBack,
+    required this.onOutcome,
+  });
+
+  final int index;
+  final int total;
+  final WorkflowStep step;
+  final bool busy;
+  final ValueChanged<WorkflowStep> onDone;
+  final ValueChanged<WorkflowStep> onBack;
+  final void Function(WorkflowStep, Outcome) onOutcome;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pagePadding,
+        AppSpacing.sm,
+        AppSpacing.pagePadding,
+        AppSpacing.sm,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Semantics(
+            label: l10n.stepOf(index + 1, total),
+            child: ExcludeSemantics(
+              child: _StepDots(index: index, total: total),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          if (step.kind == StepKind.outcome) ...[
+            PrimaryButton(
+              label: l10n.outcomeBooked,
+              icon: Icons.check_rounded,
+              busy: busy,
+              onPressed: () => onOutcome(step, Outcome.succeeded),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            SecondaryButton(
+              label: l10n.outcomeNotBooked,
+              onPressed: busy
+                  ? null
+                  : () => onOutcome(step, Outcome.notCompleted),
+            ),
+          ] else
+            Row(
+              children: [
+                if (index > 0) ...[
+                  SizedBox(
+                    width: 64,
+                    child: OutlinedButton(
+                      onPressed: busy ? null : () => onBack(step),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        backgroundColor: Colors.white,
+                      ),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        semanticLabel: l10n.back,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                ],
+                Expanded(
+                  child: PrimaryButton(
+                    label: l10n.done,
+                    icon: Icons.check_rounded,
+                    busy: busy,
+                    onPressed: () => onDone(step),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepDots extends StatelessWidget {
+  const _StepDots({required this.index, required this.total});
+  final int index;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      for (var i = 0; i < total; i++)
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 250),
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          width: i == index ? 22 : 7,
+          height: 7,
+          decoration: BoxDecoration(
+            color: i <= index
+                ? AppColors.lavenderStrong
+                : AppColors.disabledSurface,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+    ],
+  );
+}
+
+/// Compact call status above the guide: live orb + state + mute/end, or a
+/// "Tap to talk" pill when no call is running.
+class _CallPill extends StatelessWidget {
+  const _CallPill({required this.onCall});
   final VoidCallback onCall;
 
   @override
@@ -330,19 +877,42 @@ class _CallBar extends StatelessWidget {
     final voice = services.voice;
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return ListenableBuilder(
-      listenable: voice,
-      builder: (context, _) {
-        final status = voice.status;
-        final text = VoiceStatusText.of(l10n, status);
-        final failed = status.phase == VoicePhase.failed;
-        final micDenied = status.failure == VoiceFailure.microphoneDenied;
-
-        final Widget action;
-        if (status.isLive) {
-          action = Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+    final status = voice.status;
+    final live = status.isBusy;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.pagePaddingCompact,
+        AppSpacing.xs,
+        AppSpacing.pagePaddingCompact,
+        0,
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(6, 6, 6, 6),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(40),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            HeroOrb(status: status, size: 44, onTap: live ? null : onCall),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  live
+                      ? VoiceStatusText.of(l10n, status).title
+                      : status.phase == VoicePhase.failed
+                      ? VoiceStatusText.of(l10n, status).hint
+                      : l10n.tapToTalk,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+            ),
+            if (live) ...[
               IconButton(
                 tooltip: voice.muted ? l10n.unmute : l10n.mute,
                 onPressed: status.phase == VoicePhase.connecting
@@ -356,153 +926,34 @@ class _CallBar extends StatelessWidget {
                 tooltip: l10n.endCall,
                 style: IconButton.styleFrom(
                   backgroundColor: AppColors.roseStrong,
-                  foregroundColor: AppColors.onPrimaryAction,
+                  foregroundColor: Colors.white,
                 ),
                 onPressed: voice.end,
                 icon: const Icon(Icons.call_end_rounded),
               ),
-            ],
-          );
-        } else if (status.phase == VoicePhase.requestingPermission) {
-          action = const SizedBox.square(
-            dimension: 24,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          );
-        } else if (micDenied) {
-          action = FilledButton(
-            onPressed: services.android.openAppSettings,
-            child: Text(l10n.allowMic),
-          );
-        } else if (failed && status.failure == VoiceFailure.notConfigured) {
-          action = const SizedBox.shrink();
-        } else {
-          action = FilledButton.icon(
-            onPressed: onCall,
-            icon: const Icon(Icons.call_rounded, size: 20),
-            label: Text(
-              status.phase == VoicePhase.idle
-                  ? l10n.callSaathi
-                  : l10n.callAgain,
-            ),
-          );
-        }
-
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.pagePaddingCompact,
-            AppSpacing.xxs,
-            AppSpacing.pagePaddingCompact,
-            AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              VoiceOrb(status: status, size: 44),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Semantics(
-                  liveRegion: true,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(text.title, style: theme.textTheme.titleMedium),
-                      // Only failures need an explanation; normal states speak
-                      // for themselves.
-                      if (failed)
-                        Text(
-                          text.hint,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodySmall,
-                        ),
-                    ],
-                  ),
+            ] else if (status.failure == VoiceFailure.microphoneDenied)
+              TextButton(
+                onPressed: services.android.openAppSettings,
+                child: Text(l10n.allowMic),
+              )
+            else
+              IconButton.filled(
+                tooltip: l10n.tapToTalk,
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.lavenderStrong,
+                  foregroundColor: Colors.white,
                 ),
+                onPressed: onCall,
+                icon: const Icon(Icons.mic_rounded),
               ),
-              const SizedBox(width: AppSpacing.xs),
-              Flexible(
-                child: FittedBox(fit: BoxFit.scaleDown, child: action),
-              ),
-            ],
-          ),
-        );
-      },
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _AppPicker extends StatelessWidget {
-  const _AppPicker({required this.title, required this.onPick});
-  final String title;
-  final ValueChanged<RideApp> onPick;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.pagePadding),
-      children: [
-        Text(title, style: theme.textTheme.headlineMedium),
-        const SizedBox(height: AppSpacing.md),
-        for (final app in RideApp.values) ...[
-          _BigChoice(
-            icon: Icons.local_taxi_outlined,
-            label: app.displayName,
-            onTap: () => onPick(app),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-        ],
-      ],
-    );
-  }
-}
-
-class _SetupQuestion extends StatelessWidget {
-  const _SetupQuestion({
-    required this.app,
-    required this.busy,
-    required this.onAnswer,
-    required this.onBack,
-  });
-
-  final RideApp app;
-  final bool busy;
-  final ValueChanged<bool> onAnswer;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.pagePadding),
-      children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton.icon(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_rounded, size: 20),
-            label: Text(l10n.back),
-          ),
-        ),
-        Text(
-          l10n.alreadyUsing(app.displayName),
-          style: theme.textTheme.headlineMedium,
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        PrimaryButton(
-          label: l10n.yesShort,
-          busy: busy,
-          onPressed: () => onAnswer(false),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        SecondaryButton(
-          label: l10n.noNewUser,
-          onPressed: busy ? null : () => onAnswer(true),
-        ),
-      ],
-    );
-  }
-}
+// ==================================================================== other states
 
 class _ResumeChoice extends StatelessWidget {
   const _ResumeChoice({required this.onContinue, required this.onNew});
@@ -514,20 +965,21 @@ class _ResumeChoice extends StatelessWidget {
     final services = AppScope.of(context);
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final guide = services.guide;
-    final def = guide.definition!;
-    final step = guide.currentStep!;
-    final app = RideApp.fromWorkflowId(def.id)?.displayName ?? '';
+    final def = services.guide.definition!;
+    final step = services.guide.currentStep!;
+    final language = services.settings.language;
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.pagePadding),
       children: [
+        const SizedBox(height: AppSpacing.xl),
         Text(l10n.resumeTitle, style: theme.textTheme.headlineMedium),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          '$app · ${l10n.stepOf(def.indexOf(step.id) + 1, def.steps.length)}'
-          ' · ${step.title.of(services.settings.language)}',
+          '${def.title.of(language)} · '
+          '${l10n.stepOf(def.indexOf(step.id) + 1, def.steps.length)}',
           style: theme.textTheme.bodyLarge,
         ),
+        Text(step.title.of(language), style: theme.textTheme.bodyMedium),
         const SizedBox(height: AppSpacing.lg),
         PrimaryButton(label: l10n.continueGuide, onPressed: onContinue),
         const SizedBox(height: AppSpacing.sm),
@@ -537,274 +989,94 @@ class _ResumeChoice extends StatelessWidget {
   }
 }
 
-class _StepView extends StatelessWidget {
-  const _StepView({
-    required this.busy,
-    required this.onDone,
-    required this.onBack,
-    required this.onOutcome,
-    required this.onNew,
-  });
-
-  final bool busy;
-  final ValueChanged<WorkflowStep> onDone;
-  final ValueChanged<WorkflowStep> onBack;
-  final void Function(WorkflowStep, Outcome) onOutcome;
-  final VoidCallback onNew;
-
-  @override
-  Widget build(BuildContext context) {
-    final services = AppScope.of(context);
-    final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final language = services.settings.language;
-    final guide = services.guide;
-    final def = guide.definition!;
-    final step = guide.currentStep!;
-    final index = def.indexOf(step.id);
-    final app = RideApp.fromWorkflowId(def.id)?.displayName ?? '';
-
-    final layout = Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.pagePadding,
-            AppSpacing.sm,
-            AppSpacing.xs,
-            0,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '$app · ${l10n.stepOf(index + 1, def.steps.length)}',
-                  style: theme.textTheme.bodySmall,
-                ),
-              ),
-              TextButton(onPressed: onNew, child: Text(l10n.newRide)),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.pagePadding,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: (index + 1) / def.steps.length,
-              minHeight: 5,
-            ),
-          ),
-        ),
-        // Text on top (scrolls only with very large fonts), screenshot fills the
-        // rest: everything is visible at once, no scrolling needed.
-        ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.sizeOf(context).height * 0.3,
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.pagePadding,
-              AppSpacing.sm,
-              AppSpacing.pagePadding,
-              0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Semantics(
-                  header: true,
-                  child: Text(
-                    step.title.of(language),
-                    style: theme.textTheme.titleLarge,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xxs),
-                Text(
-                  step.instruction.of(language),
-                  style: theme.textTheme.bodyLarge!.copyWith(fontSize: 16),
-                ),
-                if (step.sensitivity == Sensitivity.secretCode) ...[
-                  const SizedBox(height: AppSpacing.xs),
-                  InlineNotice(
-                    icon: Icons.lock_outline_rounded,
-                    text: l10n.secretCodeNote,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: step.screenshot == null
-              ? const SizedBox.shrink()
-              : Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.pagePadding,
-                    AppSpacing.sm,
-                    AppSpacing.pagePadding,
-                    AppSpacing.sm,
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) => ScreenshotGuide(
-                      screenshot: step.screenshot!,
-                      language: language,
-                      maxHeight: constraints.maxHeight,
-                    ),
-                  ),
-                ),
-        ),
-        DecoratedBox(
-          decoration: const BoxDecoration(
-            border: Border(top: BorderSide(color: AppColors.border)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.pagePadding,
-              AppSpacing.sm,
-              AppSpacing.pagePadding,
-              AppSpacing.sm,
-            ),
-            child: step.kind == StepKind.outcome
-                ? Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      PrimaryButton(
-                        label: l10n.outcomeBooked,
-                        icon: Icons.check_rounded,
-                        busy: busy,
-                        onPressed: () => onOutcome(step, Outcome.succeeded),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      SecondaryButton(
-                        label: l10n.outcomeNotBooked,
-                        onPressed: busy
-                            ? null
-                            : () => onOutcome(step, Outcome.notCompleted),
-                      ),
-                    ],
-                  )
-                : Row(
-                    children: [
-                      if (index > 0) ...[
-                        SizedBox(
-                          width: 64,
-                          child: OutlinedButton(
-                            onPressed: busy ? null : () => onBack(step),
-                            style: OutlinedButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: Icon(
-                              Icons.arrow_back_rounded,
-                              semanticLabel: l10n.back,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.sm),
-                      ],
-                      Expanded(
-                        child: PrimaryButton(
-                          label: l10n.done,
-                          icon: Icons.check_rounded,
-                          busy: busy,
-                          onPressed: () => onDone(step),
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-      ],
-    );
-    // Everything fits without scrolling on normal phones. Only very large text
-    // on a small screen falls back to scrolling, instead of overflowing.
-    return LayoutBuilder(
-      builder: (context, constraints) => constraints.maxHeight >= 480
-          ? layout
-          : SingleChildScrollView(child: SizedBox(height: 760, child: layout)),
-    );
-  }
-}
-
-class _Finished extends StatelessWidget {
-  const _Finished({
+class _FinishedView extends StatefulWidget {
+  const _FinishedView({
     required this.outcome,
+    required this.wasRide,
     required this.appName,
-    required this.onNewRide,
+    required this.onNext,
   });
 
-  final Outcome outcome;
+  final Outcome? outcome;
+  final bool wasRide;
   final String appName;
-  final VoidCallback onNewRide;
+  final VoidCallback onNext;
+
+  @override
+  State<_FinishedView> createState() => _FinishedViewState();
+}
+
+class _FinishedViewState extends State<_FinishedView> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Return to the mic by itself, so the conversation can just carry on.
+    _timer = Timer(const Duration(seconds: 8), widget.onNext);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final success = outcome == Outcome.succeeded;
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.pagePadding),
-      children: [
-        Icon(
-          success ? Icons.check_circle_rounded : Icons.self_improvement_rounded,
-          size: 56,
-          color: success ? AppColors.mintStrong : AppColors.lavenderStrong,
-        ),
-        const SizedBox(height: AppSpacing.md),
-        Text(
-          success ? l10n.completedTitle : l10n.notCompletedTitle,
-          style: theme.textTheme.headlineMedium,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          success ? l10n.completedBody(appName) : l10n.notCompletedBody,
-          style: theme.textTheme.bodyLarge,
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        PrimaryButton(label: l10n.newRide, onPressed: onNewRide),
-      ],
-    );
-  }
-}
-
-class _BigChoice extends StatelessWidget {
-  const _BigChoice({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: AppColors.surfaceMuted,
-    borderRadius: BorderRadius.circular(AppSpacing.buttonRadius),
-    clipBehavior: Clip.antiAlias,
-    child: InkWell(
-      onTap: onTap,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 64),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Row(
-            children: [
-              Icon(icon),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+    final success = widget.outcome != Outcome.notCompleted;
+    final title = !widget.wasRide
+        ? l10n.allDone
+        : success
+        ? l10n.completedTitle
+        : l10n.notCompletedTitle;
+    final body = !widget.wasRide
+        ? l10n.topicDoneBody
+        : success
+        ? l10n.completedBody(widget.appName)
+        : l10n.notCompletedBody;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSpacing.pagePadding),
+        child: Column(
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: success ? AppColors.mint : AppColors.softBlue,
               ),
-              const Icon(Icons.chevron_right_rounded),
-            ],
-          ),
+              child: Icon(
+                success ? Icons.check_rounded : Icons.self_improvement_rounded,
+                size: 48,
+                color: success
+                    ? AppColors.mintStrong
+                    : AppColors.lavenderStrong,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.headlineMedium,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            PrimaryButton(
+              label: l10n.askSomethingElse,
+              onPressed: widget.onNext,
+            ),
+          ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }

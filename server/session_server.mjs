@@ -52,7 +52,15 @@ const LANGUAGES = new Set(["en", "mr"]);
 // Context the app may pass to the agent prompt as {{variables}}. Informational only:
 // the app's workflow engine, not the agent, decides the current step.
 const USER_DATA_KEYS = ["saathi_device", "saathi_task", "saathi_step", "saathi_instruction"];
-const TOOL_ACTIONS = new Set(["start_guide", "step_done", "go_back", "outcome", "current_step"]);
+const TOOL_ACTIONS = new Set([
+  "show_topic",
+  "start_guide",
+  "step_done",
+  "go_back",
+  "outcome",
+  "close_topic",
+  "current_step",
+]);
 const MAX_MINTS_PER_MINUTE = 10; // each mint can hold a concurrent-call slot on the account
 const APP_ANSWER_TIMEOUT_MS = 6000;
 const LONG_POLL_MS = 25_000;
@@ -139,6 +147,7 @@ async function handleTool(req, res) {
     id: randomUUID(),
     action,
     app: typeof input.app === "string" ? input.app.toLowerCase() : null,
+    topic: typeof input.topic === "string" ? input.topic.toLowerCase() : null,
     new_user: input.new_user === true || input.new_user === "yes" || input.new_user === "true",
     step_id: typeof input.step_id === "string" ? input.step_id : null,
     booked: input.booked === true || input.booked === "yes" || input.booked === "true",
