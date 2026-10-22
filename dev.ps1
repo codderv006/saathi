@@ -14,6 +14,9 @@ $adb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
 & $adb reverse tcp:8787 tcp:8787 | Out-Null
 if ($LASTEXITCODE -ne 0) { Write-Host 'Phone not found: plug it in and allow USB debugging.'; exit 1 }
 Write-Host 'Phone forward ready (phone localhost:8787 -> this PC).'
+# The forward is lost whenever adb restarts or the cable is replugged; keep it alive.
+Start-Process powershell -WindowStyle Hidden -ArgumentList '-NoProfile', '-Command', `
+  "while (`$true) { if (-not ((& '$adb' reverse --list) -match 'tcp:8787')) { & '$adb' reverse tcp:8787 tcp:8787 | Out-Null }; Start-Sleep 3 }"
 
 # 2. Server
 if (-not (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue)) {
