@@ -1,3 +1,6 @@
+# NOTE: the app now uses the online Cloudflare Worker (worker/, see worker/wrangler.jsonc)
+# and needs neither this script nor a USB cable. Keep this only for local server testing.
+#
 # One-step dev setup for testing Saathi on a USB-connected phone. From saathi_poc:
 #   powershell -ExecutionPolicy Bypass -File dev.ps1
 # 1. phone port forward  2. session/tool server  3. free Cloudflare tunnel

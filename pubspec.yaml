@@ -30,6 +30,7 @@ flutter:
   generate: true
   assets:
     - assets/bolna/
+    - assets/brand/
     - assets/guides/
     - assets/workflows/ola/
     - assets/workflows/uber/

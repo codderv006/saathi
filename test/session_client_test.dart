@@ -74,7 +74,7 @@ void main() {
         isA<SessionException>().having(
           (e) => e.message,
           'message',
-          contains('adb reverse'),
+          contains('session server'),
         ),
       ),
     );

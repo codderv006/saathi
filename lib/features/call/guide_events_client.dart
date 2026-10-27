@@ -23,18 +23,24 @@ class GuideEventsClient {
   onEvent;
   final http.Client _client;
   bool _running = false;
+  // Bumped on every start, so a loop still waiting on an old poll exits instead of
+  // running alongside the new one.
+  int _generation = 0;
+
+  bool get running => _running;
 
   void start() {
     if (_running) return;
     _running = true;
-    unawaited(_loop());
+    unawaited(_loop(++_generation));
   }
 
   void stop() => _running = false;
 
-  Future<void> _loop() async {
+  Future<void> _loop(int generation) async {
     final headers = {'X-Dev-Token': token, 'Content-Type': 'application/json'};
-    while (_running) {
+    bool current() => _running && generation == _generation;
+    while (current()) {
       try {
         final r = await _client
             .get(
@@ -42,7 +48,7 @@ class GuideEventsClient {
               headers: headers,
             )
             .timeout(const Duration(seconds: 35));
-        if (!_running) break;
+        if (!current()) break;
         if (r.statusCode == 204) continue;
         if (r.statusCode != 200) {
           await Future<void>.delayed(const Duration(seconds: 3));
@@ -64,7 +70,7 @@ class GuideEventsClient {
         );
       } catch (_) {
         // Server not running or phone not connected: retry quietly.
-        if (_running) await Future<void>.delayed(const Duration(seconds: 3));
+        if (current()) await Future<void>.delayed(const Duration(seconds: 3));
       }
     }
   }

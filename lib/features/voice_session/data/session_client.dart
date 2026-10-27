@@ -32,8 +32,8 @@ class SessionClient {
           .timeout(const Duration(seconds: 15));
     } catch (e) {
       throw SessionException(
-        'Backend unreachable at $url ($e). Is server/session_server.mjs running and '
-        '`adb reverse tcp:8787 tcp:8787` set?',
+        'Backend unreachable at $url ($e). Check the internet connection and that '
+        'the session server (worker/ or server/session_server.mjs) is running.',
         unreachable: true,
       );
     }

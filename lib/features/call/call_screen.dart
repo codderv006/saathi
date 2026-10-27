@@ -43,6 +43,7 @@ class _CallScreenState extends State<CallScreen> {
   bool _guideWasOpen = false;
   WorkflowController? _guide;
   GuideEventsClient? _agentEvents;
+  VoiceSessionService? _voice;
 
   @override
   void didChangeDependencies() {
@@ -66,13 +67,27 @@ class _CallScreenState extends State<CallScreen> {
         token: PocConfig.devSessionToken,
         deviceId: services.settings.installationId,
         onEvent: handler.handle,
-      )..start();
+      );
+      // Only listen for the agent while a call is live (the server is online and
+      // each open poll counts against its free quota).
+      _voice = services.voice..addListener(_onVoiceChanged);
+      _onVoiceChanged();
+    }
+  }
+
+  void _onVoiceChanged() {
+    final live = _voice?.status.isBusy ?? false;
+    if (live) {
+      _agentEvents?.start();
+    } else {
+      _agentEvents?.stop();
     }
   }
 
   @override
   void dispose() {
     _guide?.removeListener(_onGuideChanged);
+    _voice?.removeListener(_onVoiceChanged);
     _agentEvents?.stop();
     super.dispose();
   }

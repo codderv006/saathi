@@ -1,0 +1,15 @@
+// Deploy:  cd worker && npx wrangler deploy
+// Secrets: npx wrangler secret put BOLNA_API_KEY   (also BOLNA_AGENT_ID, DEV_SESSION_TOKEN, TOOL_TOKEN)
+// Logs:    npx wrangler tail
+{
+  "name": "saathi",
+  "main": "src/index.js",
+  "compatibility_date": "2025-09-01",
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [{ "name": "RELAY", "class_name": "DeviceRelay" }]
+  },
+  // SQLite-backed class: the kind Durable Objects support on the free plan.
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["DeviceRelay"] }],
+  "observability": { "enabled": true }
+}
