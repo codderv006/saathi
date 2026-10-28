@@ -7,6 +7,12 @@ through it while the screen shows the matching step: a real redacted screenshot 
 have one, otherwise an animated illustration of the app. It never taps, types, pays or
 books for you, and it politely declines questions about anything else.
 
+## Demo
+
+[![Saathi demo video: a voice companion that helps parents use their phone](https://img.youtube.com/vi/dRGNC5Cv28k/maxresdefault.jpg)](https://youtu.be/dRGNC5Cv28k)
+
+▶ [Watch the demo on YouTube](https://youtu.be/dRGNC5Cv28k) (2.5 min)
+
 ## How it works
 
 ```
