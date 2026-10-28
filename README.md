@@ -106,3 +106,9 @@ The session server is plain HTTP on `127.0.0.1`, reached over USB via `adb rever
 shared token baked into the debug build. Fine for one developer phone; production needs
 real auth (Firebase ID tokens) and HTTPS (the parked Cloud Function). The Bolna key lives
 only in `server/.env` (gitignored).
+
+## Pitch
+
+[![Saathi pitch video: problem, product, business plan and roadmap](https://img.youtube.com/vi/OOOHanK2EdQ/maxresdefault.jpg)](https://youtu.be/OOOHanK2EdQ)
+
+▶ [Watch the pitch on YouTube](https://youtu.be/OOOHanK2EdQ) (under 2 min)
